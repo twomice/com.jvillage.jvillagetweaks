@@ -197,7 +197,8 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
 
 
 
-    }else{
+    }
+    else {
       // version 4.4
 
        $form->add('select', 'group_of_contact', ts('Contact is in the group'), $group_ids, FALSE,
