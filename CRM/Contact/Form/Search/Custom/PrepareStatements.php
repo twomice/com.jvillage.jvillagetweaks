@@ -219,111 +219,76 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
           $form->add('select', 'accounting_code', ts('Accounting Code'),  $accounting_code_choices, FALSE,
           array('id' => 'accounting_code', 'multiple' => 'multiple', 'title' => ts('-- select --'))
         );
-
-    }
-
-
-        $form->addDate('end_date', ts('Due By'), false, array( 'formatType' => 'custom' ) );
+     }
 
 
+     $form->addDate('end_date', ts('Due By'), false, array( 'formatType' => 'custom' ) );
 
+     $form->add ( 'text', 'num_days_overdue', ts('Number Days Overdue'));
 
+     $layout_choices = array();
+     // $layout_choices[''] = '  -- Select Layout -- ';
+     // $layout_choices['details'] = 'Details';
+     // $layout_choices['summarize_contact_contribution_type'] = 'Summarized by Contact, '.$fin_type_label;
+     $layout_choices['summarize_contact'] = 'Summarized by Contact (best for email)';
 
-      /*
+     $layout_choices['summarize_household'] = 'Summarized by Household (best for hard copy)';
+     //  $layout_choices['summarize_contribution_type'] = 'Summarized by '.$fin_type_label;
+     //  $layout_choices['summarize_accounting_code'] = 'Summarized by Accounting Code';
 
-      */
+     $form->add('select', 'layout_choice', ts('Layout Choice'), $layout_choices, false);
 
+     $comm_prefs = $searchTools->getCommunicationPreferencesForSelectList();
+     $comm_prefs_select = $form->add  ('select', 'comm_prefs', ts('Communication Preference'), $comm_prefs, false);
 
-        $form->add ( 'text', 'num_days_overdue', ts('Number Days Overdue'));
+     $form->assign( 'elements', array( 'group_of_contact', 'membership_org_of_contact' , 'membership_type_of_contact' ,  'end_date' , 'num_days_overdue', 'contrib_type' ,  'date_selection', 'comm_prefs',  'layout_choice') );
 
-        $layout_choices = array();
-     //   $layout_choices[''] = '  -- Select Layout -- ';
-     //   $layout_choices['details'] = 'Details';
-     //   $layout_choices['summarize_contact_contribution_type'] = 'Summarized by Contact, '.$fin_type_label;
-        $layout_choices['summarize_contact'] = 'Summarized by Contact (best for email)';
-
-        $layout_choices['summarize_household'] = 'Summarized by Household (best for hard copy)';
-      //  $layout_choices['summarize_contribution_type'] = 'Summarized by '.$fin_type_label;
-      //  $layout_choices['summarize_accounting_code'] = 'Summarized by Accounting Code';
-
-        $form->add  ('select', 'layout_choice', ts('Layout Choice'),
-                     $layout_choices,
-                     false);
-
-
-        $comm_prefs =  $searchTools->getCommunicationPreferencesForSelectList();
-
-         $comm_prefs_select = $form->add  ('select', 'comm_prefs', ts('Communication Preference'),
-                 $comm_prefs,
-                     false);
-
-
-      $form->assign( 'elements', array( 'group_of_contact', 'membership_org_of_contact' , 'membership_type_of_contact' ,  'end_date' , 'num_days_overdue', 'contrib_type' ,  'date_selection', 'comm_prefs',  'layout_choice') );
-
-      //
-
-
-
-
-   //  $form->assign( 'elements', array( 'target_date') );
-
-
-
-
-
+     //  $form->assign( 'elements', array( 'target_date') );
   }
 
   function setColumns() {
+    require_once 'utils/util_money.php';
+    if (pogstone_is_user_authorized('access CiviContribute') == false) {
+      $columns_to_show = array( ts('You are not authorized to this area' )        => 'total_amount', );
+      $this->_columns = $columns_to_show;
+      return ;
+    }
 
-      require_once 'utils/util_money.php';
-       if ( pogstone_is_user_authorized('access CiviContribute') == false ){
-         $columns_to_show = array( ts('You are not authorized to this area' )        => 'total_amount', );
-        $this->_columns = $columns_to_show;
-          return ;
+    require_once ('utils/Entitlement.php');
+    $entitlement = new Entitlement();
 
-       }
+    $fin_type_label  = "Financial Type";
 
+    $layout_choice = $this->_formValues['layout_choice'];
 
-      require_once ('utils/Entitlement.php');
-  $entitlement = new Entitlement();
+    if ($layout_choice == 'summarize_contact') {
+      $columns_to_show = array(
+        ts('' ) => 'contact_id',
+        ts('Name') => 'sort_name',
+        ts('Phone') => 'phone',
+        ts('Address') => 'street_address',
+        ts('City') => 'city',
+        ts('State/Province') => 'state',
+        ts('Postal Code') => 'postal_code',
+        ts('Country') => 'country',
+        ts('Contact ID') => 'contact_id',
+      );
+    }
+    else if ($layout_choice == 'summarize_household') {
+      $columns_to_show = array(
+        ts('' ) => 'contact_image',
+        ts('Name') => 'sort_name',
+        ts('Phone') => 'phone',
+        ts('Address') => 'street_address',
+        ts('City') => 'city',
+        ts('State/Province') => 'state',
+        ts('Postal Code') => 'postal_code',
+        ts('Country') => 'country',
+        ts('Contact ID') => 'contact_id',
+      );
+    }
 
-
-   $fin_type_label  = "Financial Type";
-
-
-
-      $layout_choice = $this->_formValues['layout_choice'] ;
-
-        if($layout_choice == 'summarize_contact' ){
-
-          $columns_to_show = array(
-              ts('' ) => 'contact_image',
-              ts('Name') => 'sort_name',
-              ts('Phone') => 'phone',
-              ts('Address') => 'street_address',
-              ts('City') => 'city',
-              ts('State/Province') => 'state',
-              ts('Postal Code') => 'postal_code',
-              ts('Country') => 'country',
-              ts('Contact ID') => 'contact_id',
-          );
-
-        }
-        else if ($layout_choice == 'summarize_household') {
-          $columns_to_show = array(
-              ts('' ) => 'contact_image',
-              ts('Name') => 'sort_name',
-              ts('Phone') => 'phone',
-              ts('Address') => 'street_address',
-              ts('City') => 'city',
-              ts('State/Province') => 'state',
-              ts('Postal Code') => 'postal_code',
-              ts('Country') => 'country',
-              ts('Contact ID') => 'contact_id',
-          );
-        }
-
-        $this->_columns = $columns_to_show;
+    $this->_columns = $columns_to_show;
   }
 
   function select($summary_section = false, $onlyIDs) {
