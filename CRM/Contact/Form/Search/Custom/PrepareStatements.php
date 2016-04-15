@@ -411,93 +411,85 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
   }
 
   function all($offset = 0, $rowcount = 0, $sort = null, $includeContactIDs = false, $onlyIDs = false) {
-       // check authority of end-user
-       require_once 'utils/util_money.php';
-       if ( pogstone_is_user_authorized('access CiviContribute') == false ){
-           return "select 'You are not authorized to this area' as total_amount from  civicrm_contact where 1=0 limit 1";
+    // check authority of end-user
+    require_once 'utils/util_money.php';
 
-       }
-     //   $end_date_parm  = $this->_params['end_date'] ;
-        $groupby = "";
-        $layout_choice = $this->_formValues['layout_choice'] ;
-        if ( $onlyIDs ) {
-          $groupby = "";
-      }else{
-        //print "<br><br>layout choice: ".$layout_choice;
-        if($layout_choice == 'summarize_contact'){
+    if (pogstone_is_user_authorized('access CiviContribute') == false) {
+      return "select 'You are not authorized to this area' as total_amount from  civicrm_contact where 1=0 limit 1";
+    }
 
-          $groupby = "Group By t1.contact_id , currency";
+    //   $end_date_parm  = $this->_params['end_date'] ;
+    $groupby = "";
+    $layout_choice = $this->_formValues['layout_choice'] ;
 
-        }else if($layout_choice == 'summarize_household'){
-
-          $groupby = "Group By t1.contact_id , currency";
-
-        }else{
-
-        $groupby = "";
+    if ($onlyIDs) {
+      $groupby = "";
+    }
+    else {
+      if ($layout_choice == 'summarize_contact') {
+        $groupby = "Group By t1.contact_id , currency";
       }
-
-  }
-      // make sure selected smart groups are cached in the cache table
-  $group_of_contact = $this->_formValues['group_of_contact'];
-
-  require_once('utils/CustomSearchTools.php');
-  $searchTools = new CustomSearchTools();
-  $searchTools::verifyGroupCacheTable($group_of_contact ) ;
-
-
-        $grand_totals = false;
-      //  print "<br> grand totals? ".$grand_totals;
-        $select = $this->select($grand_totals, $onlyIDs);
-        $from = $this->from();
-        $where = $this->where($includeContactIDs);
-
-      // Had to nest the real query as a sub-query because otherwise it cannot be used as a smart group.
-      // Smart groups do NOT like queries with the distinct keyword.
-      // contact_a.id as contact_id
-         if ( $onlyIDs ) {
-           $outer_select =  "contact_a.id as contact_id";
-         }else{
-           $outer_select = "contact_b.*,  phone.phone, email.email, addr.street_address, addr.city,st.name as state,  addr.postal_code, country.name as country";
-
-
-         }
-
-
-        $sql  = "SELECT ".$outer_select." FROM (SELECT DISTINCT $select
-     from $from
-  $where
-  $groupby ) as contact_b
-  LEFT JOIN civicrm_contact contact_a ON contact_b.contact_id = contact_a.id
-  LEFT JOIN civicrm_phone phone ON contact_a.id = phone.contact_id AND phone.is_primary = 1
-  LEFT JOIN civicrm_email email ON contact_a.id = email.contact_id AND email.is_primary = 1
-  LEFT JOIN civicrm_address addr ON contact_a.id = addr.contact_id AND addr.is_primary = 1
-  LEFT JOIN civicrm_state_province st ON addr.state_province_id = st.id
-  LEFT JOIN civicrm_country country ON addr.country_id = country.id
-  WHERE 1=1";
-
-
-  // -- this last line required to play nice with smart groups
-      // INNER JOIN civicrm_contact contact_a ON contact_a.id = r.contact_id_a
-
-      // Define ORDER BY for query in $sort, with default value
-      if ( ! empty($sort)) {
-        if (is_string($sort)) {
-          $sql .= " ORDER BY $sort ";
-        }
-        else {
-          $sql .= " ORDER BY " . trim($sort->orderBy());
-        }
+      else if($layout_choice == 'summarize_household') {
+        $groupby = "Group By t1.contact_id , currency";
       }
       else {
-        $sql .= " ORDER BY sort_name";
+        $groupby = "";
       }
+    }
 
-      if ($rowcount > 0 && $offset >= 0) {
-        $sql .= " LIMIT $offset, $rowcount ";
+    // make sure selected smart groups are cached in the cache table
+    $group_of_contact = $this->_formValues['group_of_contact'];
+
+    require_once('utils/CustomSearchTools.php');
+    $searchTools = new CustomSearchTools();
+    $searchTools::verifyGroupCacheTable($group_of_contact ) ;
+
+    $grand_totals = false;
+    //  print "<br> grand totals? ".$grand_totals;
+    $select = $this->select($grand_totals, $onlyIDs);
+    $from = $this->from();
+    $where = $this->where($includeContactIDs);
+
+    // Had to nest the real query as a sub-query because otherwise it cannot be used as a smart group.
+    // Smart groups do NOT like queries with the distinct keyword.
+    // contact_a.id as contact_id
+    if ($onlyIDs) {
+      $outer_select =  "contact_a.id as contact_id";
+    }
+    else {
+      $outer_select = "contact_b.*,  phone.phone, email.email, addr.street_address, addr.city,st.name as state,  addr.postal_code, country.name as country";
+    }
+
+    $sql  = "SELECT ".$outer_select." FROM (SELECT DISTINCT $select from $from $where $groupby ) as contact_b
+               LEFT JOIN civicrm_contact contact_a ON contact_b.contact_id = contact_a.id
+               LEFT JOIN civicrm_phone phone ON contact_a.id = phone.contact_id AND phone.is_primary = 1
+               LEFT JOIN civicrm_email email ON contact_a.id = email.contact_id AND email.is_primary = 1
+               LEFT JOIN civicrm_address addr ON contact_a.id = addr.contact_id AND addr.is_primary = 1
+               LEFT JOIN civicrm_state_province st ON addr.state_province_id = st.id
+               LEFT JOIN civicrm_country country ON addr.country_id = country.id
+              WHERE 1=1";
+
+    // -- this last line required to play nice with smart groups
+    // INNER JOIN civicrm_contact contact_a ON contact_a.id = r.contact_id_a
+
+    // Define ORDER BY for query in $sort, with default value
+    if ( ! empty($sort)) {
+      if (is_string($sort)) {
+        $sql .= " ORDER BY $sort ";
       }
+      else {
+        $sql .= " ORDER BY " . trim($sort->orderBy());
+      }
+    }
+    else {
+      $sql .= " ORDER BY sort_name";
+    }
 
-      return $sql;
+    if ($rowcount > 0 && $offset >= 0) {
+      $sql .= " LIMIT $offset, $rowcount ";
+    }
+
+    return $sql;
   }
 
   function from() {
