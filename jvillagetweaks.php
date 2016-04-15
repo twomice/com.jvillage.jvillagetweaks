@@ -9,6 +9,11 @@ require_once 'jvillagetweaks.civix.php';
  */
 function jvillagetweaks_civicrm_config(&$config) {
   _jvillagetweaks_civix_civicrm_config($config);
+
+  // redmine:766
+  // Even if this is set in local.settings.php, it was not being set correctly in
+  // packages/kcfinder/integration/civicrm.php
+  $config->imageUploadURL = 'https://' . $_SERVER['HTTP_HOST'] . '/sites/' . $_SERVER['HTTP_HOST'] . '/files/civicrm/persist/contribute/';
 }
 
 /**
