@@ -13,7 +13,14 @@ function jvillagetweaks_civicrm_config(&$config) {
   // redmine:766
   // Even if this is set in local.settings.php, it was not being set correctly in
   // packages/kcfinder/integration/civicrm.php
-  $config->imageUploadURL = 'https://' . $_SERVER['HTTP_HOST'] . '/sites/' . $_SERVER['HTTP_HOST'] . '/files/civicrm/persist/contribute/';
+  $config->imageUploadURL = 'https://' . $_SERVER['HTTP_HOST'] . '/sites/' . $_SERVER['HTTP_HOST'] . '/files/';
+
+  if ($config->userFramework == 'Drupal6') {
+    $config->imageUploadDir = '/var/aegir/platforms/civicrm-4.7d6/sites/' . $_SERVER['HTTP_HOST'] . '/files/';
+  }
+  else {
+    $config->imageUploadDir = '/var/aegir/platforms/civicrm-4.7/sites/' . $_SERVER['HTTP_HOST'] . '/files/';
+  }
 }
 
 /**
