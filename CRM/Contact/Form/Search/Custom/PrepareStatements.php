@@ -277,7 +277,7 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
     }
     else if ($layout_choice == 'summarize_household') {
       $columns_to_show = array(
-        ts('' ) => 'contact_image',
+        ts('' ) => 'contact_id',
         ts('Name') => 'sort_name',
         ts('Phone') => 'phone',
         ts('Address') => 'street_address',
