@@ -3,62 +3,48 @@
 require_once 'CRM/Contact/Form/Search/Custom/Base.php';
 
 class CRM_Contact_Form_Search_Custom_ContactFinancialSummary extends CRM_Contact_Form_Search_Custom_Base implements CRM_Contact_Form_Search_Interface {
-    protected $_formValues;
-    protected $groupby_string ;
-    protected $FINANCIAL_TYPE_IDS ; 
-    protected $GENERAL_LEDGER_CODES; 
-    
-     function __construct( &$formValues ) {
-        parent::__construct( $formValues );
+  protected $_formValues;
+  protected $groupby_string;
+  protected $FINANCIAL_TYPE_IDS;
+  protected $GENERAL_LEDGER_CODES;
 
-       // $this->_eventID = CRM_Utils_Array::value( 'event_id',
-       //                                           $this->_formValues );
-	
-	
-	$tmp_option_value_raw =   $this->_formValues['priceset_option_id'] ; 
-	//$form_values = split('_' , $tmp_option_value_raw );
-	
-	$this->_userChoices = $tmp_option_value_raw; 
-	
-	$tmp_all_events = array();
-	$tmp_all_priceset_options = array();
-	
-	if(is_array($this->_userChoices)){
-		foreach ($this->_userChoices as $dontCare => $curUserChoice ) {
-	   		$tmp_cur = split('_' ,$curUserChoice );
-	   		$tmp_all_events[] = $tmp_cur[0]; 
-	   		$tmp_all_priceset_options[] = $tmp_cur[1]; 		  
-		}
-	}
-	
-	
-	$this->_allChosenEvents  = $tmp_all_events ; 
-	$this->_allChosenPricesetOptions = $tmp_all_priceset_options;
-	
-	
-	 	
-	
-        $this->setColumns( );  
+  function __construct(&$formValues) {
+    parent::__construct($formValues);
 
-        
+    // $this->_eventID = CRM_Utils_Array::value('event_id', $this->_formValues);
 
+    $tmp_option_value_raw =   $this->_formValues['priceset_option_id'];
+    //$form_values = split('_' , $tmp_option_value_raw);
+
+    $this->_userChoices = $tmp_option_value_raw;
+
+    $tmp_all_events = array();
+    $tmp_all_priceset_options = array();
+
+    if (is_array($this->_userChoices)) {
+      foreach ($this->_userChoices as $dontCare => $curUserChoice) {
+        $tmp_cur = split('_' ,$curUserChoice );
+        $tmp_all_events[] = $tmp_cur[0];
+        $tmp_all_priceset_options[] = $tmp_cur[1];
+      }
     }
 
-    function __destruct( ) {
-        /*
-        if ( $this->_eventID ) {
-            $sql = "DROP TEMPORARY TABLE {$this->_tableName}";
-            CRM_Core_DAO::executeQuery( $sql );
-        }
-        */
+    $this->_allChosenEvents  = $tmp_all_events;
+    $this->_allChosenPricesetOptions = $tmp_all_priceset_options;
+
+    $this->setColumns();
+  }
+
+  function __destruct() {
+    /*
+    if ( $this->_eventID ) {
+        $sql = "DROP TEMPORARY TABLE {$this->_tableName}";
+        CRM_Core_DAO::executeQuery( $sql );
     }
+    */
+  }
 
-
-/***********************************************************************************************/
-
-   
-    function buildForm( &$form ) {
-	
+  function buildForm(&$form) {
         /**
          * You can define a custom title for the search form
          */
@@ -70,14 +56,11 @@ class CRM_Contact_Form_Search_Custom_ContactFinancialSummary extends CRM_Contact
          */
        
          require_once 'utils/util_money.php';
-       if ( pogstone_is_user_authorized('access CiviContribute') == false ){
+       if ( pogstone_is_user_authorized('access CiviContribute') == false ) {
       		 $this->setTitle('Not Authorized');
        		return; 
-       
        }
-        
-        
-   	
+
    	/* Make sure user can filter on groups and memberships  */
    	   require_once('utils/CustomSearchTools.php');
 	$searchTools = new CustomSearchTools();
@@ -88,12 +71,9 @@ class CRM_Contact_Form_Search_Custom_ContactFinancialSummary extends CRM_Contact
          $form->add('select', 'group_of_contact', ts('Contact is in the group'), $group_ids, FALSE,
           array('id' => 'group_of_contact', 'multiple' => 'multiple', 'title' => ts('-- select --'))
         );
-        
-        
+
          $mem_ids = $searchTools->getMembershipsforSelectList();
-       	
-       	
-        
+
         $form->add('select', 'membership_type_of_contact', ts('Contact has the membership of type'), $mem_ids, FALSE,
           array('id' => 'membership_type_of_contact', 'multiple' => 'multiple', 'title' => ts('-- select --'))
         );
@@ -129,17 +109,11 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
         	 	AND efa.account_relationship = 1 
         	 	LEFT JOIN civicrm_financial_account fa ON efa.financial_account_id = fa.id 
 			    where ct.is_active = 1 order by name";
-        
-        
-	
-	
-	
-	
+
 	//print "<br>sql: ".$contrib_type_sql;		    
 	$contrib_dao = & CRM_Core_DAO::executeQuery(  $financial_type_sql, CRM_Core_DAO::$_nullArray );
                                              
-         while ($contrib_dao->fetch()){
-         	
+         while ($contrib_dao->fetch()) {
               $cur_id = $contrib_dao->id;
               $cur_name = $contrib_dao->name; 
               $accounting_code = $contrib_dao->accounting_code; 
@@ -148,8 +122,7 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
              // $pos_b = strpos($cur_name, 'prepayment-');
               
               if ($pos_a === false ) {
-              
-	              if( strlen($accounting_code) > 0 ){
+	              if( strlen($accounting_code) > 0 ) {
                 		$tmp_description = $cur_name." - ".$accounting_code;
                 		$accounting_code_choices[$accounting_code] = $accounting_code;
               		}else{
@@ -157,32 +130,22 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
              		}
              
               		$contrib_type_choices[$cur_id] = $tmp_description;
-
-
  		}        
          }
          
         $contrib_dao->free();   
-        
-	
-         
-         natcasesort ($accounting_code_choices);
-         
-        
-         
-        
+
+        natcasesort ($accounting_code_choices);
+
         $financial_type_label = "";
         $summary_type_label = "";
-        
-        
+
         $financial_type_label = "Financial Types"; 
         $summary_type_label = "Financial Type";
-        
-         
+
          $form->add('select', 'contrib_type', ts($financial_type_label), $contrib_type_choices, FALSE,
           array('id' => 'contrib_type', 'multiple' => 'multiple', 'title' => ts('-- select --'))
         );
-
 
   $form->add('select', 'accounting_code', ts('Accounting Codes'),  $accounting_code_choices, FALSE,
           array('id' => 'accounting_code', 'multiple' => 'multiple', 'title' => ts('-- select --'))
@@ -235,13 +198,9 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
         $form->add  ('select', 'layout_choice', ts('Layout Choice'),
                      $layout_choices,
                      false);
-                     
-                     
-                     
-                     
+
        $form->addDate('start_date', ts('From'), false, array( 'formatType' => 'custom' ) );
-        
-        $form->addDate('end_date', ts('...through'), false, array( 'formatType' => 'custom' ) );   
+       $form->addDate('end_date', ts('...through'), false, array( 'formatType' => 'custom' ) );   
         
          $comm_prefs =  $searchTools->getCommunicationPreferencesForSelectList();
         
@@ -250,36 +209,29 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
                      false);             
                      
        $form->assign( 'elements', array( 'group_of_contact', 'membership_org_of_contact' , 'membership_type_of_contact' ,'start_date', 'end_date',  'contrib_type', 'accounting_code',  'balance_choice',   'layout_choice') );                  
-    
+  }
 
-  
-   
-   
-    }
+  function setColumns() {
+    	$layout_choice = $this->_formValues['layout_choice'];
 
-    function setColumns( ) {
-    	$layout_choice = $this->_formValues['layout_choice'] ;
-     	 
 	//print "<br><br>layout choice: ".$layout_choice;
-	if( $layout_choice == 'summarize_contact_contribution_type'){
+	if( $layout_choice == 'summarize_contact_contribution_type') {
 
 		$groupby = "contact_id,currency,contrib_type_id";
-	}else if($layout_choice == 'summarize_contribution_type'){
+	}else if($layout_choice == 'summarize_contribution_type') {
 		$groupby = "currency,contrib_type_id";
-	}else if($layout_choice == 'summarize_accounting_code'){
+	}else if($layout_choice == 'summarize_accounting_code') {
 		$groupby = "currency,accounting_code";
-	
-	}else{ 
-		
+	}
+        else {
 		$groupby = "";
 	}
-       
-    //   print "<br>group by : ".$groupby ; 
+
      $group_fields = explode(',' , $groupby );
      $display_contact_name = false;
-    if(in_array('contact_id', $group_fields)     ){
+
+    if (in_array('contact_id', $group_fields)) {
     	$display_contact_name = true;
-    
     }
     
   //  print "<br>Should display contact name? ".$display_contact_name; 
@@ -287,14 +239,11 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
    // print_r($group_fields);
     
     $display_contrib_type = false; 
-    if(in_array('contrib_type_id', $group_fields)){
+    if(in_array('contrib_type_id', $group_fields)) {
     	$display_contrib_type = true;
-    
     }
-    
-    if($layout_choice == 'summarize_contact' || $layout_choice == 'summarize_household' ){
-    
-    
+
+    if ($layout_choice == 'summarize_contact' || $layout_choice == 'summarize_household') {
         $this->_columns = array( ts('' )    		=> 'contact_image', 
       				ts('Name') 		=> 'sort_name', 
                                         
@@ -311,20 +260,12 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
                                    ts('Country') => 'country',  
                             
                                  );
-    
-    
-    
-    
-    }else{
-    
-     
+    }
+    else {
         $financial_type_label = "";
-        
-       
         $financial_type_label = "Financial Type"; 
-        
-		
-      if((strlen($groupby) > 0 && $display_contact_name) ||   $layout_choice == 'summarize_household_contribution_type' ){
+
+      if((strlen($groupby) > 0 && $display_contact_name) ||   $layout_choice == 'summarize_household_contribution_type' ) {
       	$this->_columns = array( ts('' )    		=> 'contact_image', 
       				ts('Name') 		=> 'sort_name', 
                                  ts($financial_type_label )  => 'contrib_type', 
@@ -346,7 +287,7 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
       
       
       
-      }else if(strlen($groupby) > 0 && !($display_contact_name) && ($display_contrib_type) ){
+      }else if(strlen($groupby) > 0 && !($display_contact_name) && ($display_contrib_type) ) {
       		$this->_columns = array( ts('' )    		=> 'contact_image', 
       				
                                  ts($financial_type_label )  => 'contrib_type',
@@ -361,7 +302,7 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
                                 
                                  );
         
-      }else if(strlen($groupby) > 0 && !($display_contact_name) && !($display_contrib_type) ){
+      }else if(strlen($groupby) > 0 && !($display_contact_name) && !($display_contrib_type) ) {
       			$this->_columns = array( ts('' )    		=> 'contact_image', 
       				
                                  
@@ -415,62 +356,47 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
             }                                               
     //  $this->_columns = array( ts('Contact Id')      => 'contact_id'  ); 
         
-    }
+  }
 
-  
-
-
-    function select($summary_section = false, $onlyIDs){
-    
-    
-        
-       
-        
-        
+  function select($summary_section = false, $onlyIDs) {
     return $select; 
-    
+  }
+
+  function all($offset = 0, $rowcount = 0, $sort = null, $includeContactIDs = false, $onlyIDs = false) {
+    // check authority of end-user
+    require_once 'utils/util_money.php';
+
+    if (pogstone_is_user_authorized('access CiviContribute') == false ) {
+      return "select contact_a.id as contact_id from civicrm_contact contact_a where 1=0 "; 
     }
-   // return $this->all( $offset, $rowcount, $sort, false, true );
-   
-    function all( $offset = 0, $rowcount = 0, $sort = null,
-                  $includeContactIDs = false, $onlyIDs = false ) {
-       
-          // check authority of end-user
-       require_once 'utils/util_money.php';
-       if ( pogstone_is_user_authorized('access CiviContribute') == false ){
-       		return "select contact_a.id as contact_id from civicrm_contact contact_a where 1=0 "; 
-       		
-       }
-       
-       
-     
-        $groupby = "";
-        $layout_choice = $this->_formValues['layout_choice'] ;
-     	 if ( $onlyIDs ) {
-        	$groupby = "";
-    	}else{
+
+    $groupby = "";
+    $layout_choice = $this->_formValues['layout_choice'];
+
+    if ($onlyIDs) {
+      $groupby = "";
+    }
+    else {
     		//print "<br><br>layout choice: ".$layout_choice;
-    		if( $layout_choice == 'summarize_contact_contribution_type'){
+    		if( $layout_choice == 'summarize_contact_contribution_type') {
     			$groupby = "contact_id,currency,contrib_type_id";
-    		}else if($layout_choice == 'summarize_contribution_type'){
+    		}else if($layout_choice == 'summarize_contribution_type') {
     			$groupby = "currency,contrib_type_id";
-    		}else if($layout_choice == 'summarize_accounting_code'){
+    		}else if($layout_choice == 'summarize_accounting_code') {
     			$groupby = "currency,accounting_code";
-    		}else if($layout_choice == 'summarize_contact'){
+    		}else if($layout_choice == 'summarize_contact') {
     			$groupby = "contact_id,currency" ;
-    		}else if( $layout_choice == 'summarize_household_contribution_type'){
+    		}else if( $layout_choice == 'summarize_household_contribution_type') {
     			$groupby = "contact_id,currency,contrib_type_id";
-    		}else if( $layout_choice == 'summarize_household'){
+    		}else if( $layout_choice == 'summarize_household') {
     			$groupby = "contact_id,currency" ;
     		}else{ 	
   			$groupby = "";
   		}
   		
   		$this->groupby_string = $groupby ;
-
 	}
-    
-   
+
         $grand_totals = false; 
    
        // make sure selected smart groups are cached in the cache table
@@ -504,10 +430,8 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
  	   $end_date_parm  = CRM_Utils_Date::processDate( $this->_formValues['end_date'] ); 
  	   
  	   $financaial_set_id  = $this->_formValues['financial_set'] ;
-     
-     
-     
-     if(strlen($financaial_set_id) > 0 ){
+
+     if(strlen($financaial_set_id) > 0 ) {
      	  $ct_type_prefix_id = $financaial_set_id; 
      //	 print "<br> financial set id : ". $ct_type_prefix_id;
      	//print "<br><br> financial categories sql: ".$tmp_fc;
@@ -528,9 +452,6 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
    	
    	*/
    	
-      
-      
-      
    //   print "<br><br> sql: ".$sql;
    	 if ( $onlyIDs ) {
       	 	$outer_select =  "contact_a.id as contact_id";
@@ -544,21 +465,14 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
        // $outer_group_by = " group by contact_a.id, contact_b.contrib_type" ; 
        
        	// group by contact_a.id, contact_b.entity_type, contact_b.id  "; 
-   
-       
-  	
-  	
-  	
-        $sql  = "SELECT ".$outer_select." FROM ($sql_innter
-        ) as contact_b
+
+        $sql  = "SELECT ".$outer_select." FROM ($sql_innter) as contact_b
         LEFT JOIN civicrm_address address ON contact_b.contact_id = address.contact_id AND address.is_primary = 1
         LEFT JOIN civicrm_state_province state ON address.state_province_id = state.id
         LEFT JOIN civicrm_country country ON address.country_id = country.id
 	LEFT JOIN civicrm_contact contact_a ON contact_b.contact_id = contact_a.id $tmp_email_join
 	WHERE 1=1 "; 
 
-      
-	
 	// -- this last line required to play nice with smart groups
       // INNER JOIN civicrm_contact contact_a ON contact_a.id = r.contact_id_a
       
@@ -580,64 +494,36 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
             $sql .= " LIMIT $offset, $rowcount ";
         }
 
-
-
-   // print "<br><br>full sql: ". $sql;   
-
         return $sql;
-	                  
-    
-                           
-                         
-                           
- 
     }
-    
-    
-    
-    
-    
-    function from( ) {
-    
-    
-  
-    
+
+    function from() {
         return $tmp_from;
-
-
-
     }
 
-   
-
-    function where( $includeContactIDs = false ) {
-       $clauses = array( );
-       
+    function where($includeContactIDs = false) {
+       $clauses = array();
    	
 	// Now check user contrib type filter
-       
         $contrib_type_ids = $this->_formValues['contrib_type'] ;
         
-         if( ! is_array($contrib_type_ids)){
-         
+         if( ! is_array($contrib_type_ids)) {
          	//print "<br>No contrib type selected.";
-         	
-         
-         }else{
-         	
+         }
+         else {
          	$i = 1;
          	$tmp_id_list = '';
-         	foreach($contrib_type_ids as $cur_id){
-         		if(strlen($cur_id ) > 0){
+         	foreach($contrib_type_ids as $cur_id) {
+         		if(strlen($cur_id ) > 0) {
 	         		$tmp_id_list = $tmp_id_list." '".$cur_id."'" ; 
-	         		if($i < sizeof($contrib_type_ids)){
+	         		if($i < sizeof($contrib_type_ids)) {
 	         			$tmp_id_list = $tmp_id_list."," ; 
 	         		}
 	         	}	
          		$i += 1;
          	}
          	
-         	if(!(empty($tmp_id_list)) ){
+         	if(!(empty($tmp_id_list)) ) {
          		$this->FINANCIAL_TYPE_IDS = $tmp_id_list; 
          		$clauses[] = "f1.contrib_type_id IN ( ".$tmp_id_list." ) ";
          	
@@ -649,7 +535,7 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
 	// Check user choice of accounting code.
 	$accounting_codes = $this->_formValues['accounting_code'] ;
         
-         if( ! is_array($accounting_codes)){
+         if( ! is_array($accounting_codes)) {
          
          	//print "<br>No accounting code selected.";
          	
@@ -660,12 +546,12 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
          	$i = 1;
          	$tmp_id_list = '';
          	
-         	foreach($accounting_codes as $cur_id){
-         		if(strlen($cur_id ) > 0){
+         	foreach($accounting_codes as $cur_id) {
+         		if(strlen($cur_id ) > 0) {
          			$tmp_id_list = $tmp_id_list." '".$cur_id."'" ; 
          			
          		
-	         		if($i < sizeof($accounting_codes)){
+	         		if($i < sizeof($accounting_codes)) {
 	         			$tmp_id_list = $tmp_id_list."," ; 
 	         		}
 	         	}
@@ -673,7 +559,7 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
          	}
          	
          	
-         	if(!(empty($tmp_id_list))  ){
+         	if(!(empty($tmp_id_list))  ) {
          		//print "<br><br>id list: ".$tmp_id_list;
          		$this->GENERAL_LEDGER_CODES = $tmp_id_list ; 
          		$clauses[] = "f1.accounting_code IN ( ".$tmp_id_list." ) ";
@@ -689,10 +575,10 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
 
 	$balance_choice = $this->_formValues['balance_choice'] ;
 	//print "<br>balance choice: ".$balance_choice;
-	if(strcmp($balance_choice, 'open_balances') == 0){
+	if(strcmp($balance_choice, 'open_balances') == 0) {
         		
         		$clauses[] = "f1.balance <> 0  ";
-    	 }else if(strcmp($balance_choice, 'closed_balances') == 0){
+    	 }else if(strcmp($balance_choice, 'closed_balances') == 0) {
     	 		$clauses[] = "f1.balance = 0  ";
     	 
     
@@ -712,7 +598,7 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
      
         
 	
-       if(count($clauses) > 0){
+       if(count($clauses) > 0) {
        		 $partial_where_clause = implode( ' AND ', $clauses );
        		 $tmp_where = $partial_where_clause; 
        
@@ -725,225 +611,169 @@ LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.
        return $tmp_where;
     }
 
-    function templateFile( ) {
-        return 'CRM/Contact/Form/Search/Custom.tpl';
-    }
+  function templateFile() {
+    return 'CRM/Contact/Form/Search/Custom.tpl';
+  }
 
-    function setDefaultValues( ) {
-        return array( );
-    }
+  function setDefaultValues() {
+    return array();
+  }
 
-    function XXalterRow( &$row ) {
-         
-      
-         
-         $row['full_date'] =$row['mm_date'].'/'.$row['dd_date'].'/'.$row['yyyy_date'];
-         
-         
-         $type = $row['entity_type'];
-         $entity_id = $row['id'];
-          $total_amount = $row['total_amount'];
-          $status_label = $row['status_label'];
-         
-         if($type == 'pledge'){
-         
-         		if($status_label == 'Completed'){
+  function XXalterRow(&$row) {
+    $row['full_date'] =$row['mm_date'].'/'.$row['dd_date'].'/'.$row['yyyy_date'];
+
+    $type = $row['entity_type'];
+    $entity_id = $row['id'];
+    $total_amount = $row['total_amount'];
+    $status_label = $row['status_label'];
+
+    if ($type == 'pledge') {
+      if($status_label == 'Completed') {
          /*
           $tmp_cur_line_balance = '';
            $tmp_cur_line_adjustments = '';
-           $tmp_cur_line_recieved = ''; 
-          
-         		
-           $tmp_cur_line_recieved = $total_amount; 
-           $tmp_cur_line_balance = 0; 
-           $tmp_cur_line_adjustments = get_pledge_adjustments_total($entity_id ) ; 
-           
-           */
-           if(strlen($end_date_parm) > 0){
-           		$tmp_cur_line_due = 0 ; 	
-          	 
+           $tmp_cur_line_recieved = '';
+
+           $tmp_cur_line_recieved = $total_amount;
+           $tmp_cur_line_balance = 0;
+           $tmp_cur_line_adjustments = get_pledge_adjustments_total($entity_id );
+         */
+
+           if(strlen($end_date_parm) > 0) {
+           		$tmp_cur_line_due = 0;
            } 
-        
-        }else if($status_label == 'Pending'  || $status_label == 'In Progress' || $status_label == 'Overdue' ){
-          
-          if(strlen($end_date_parm) > 0){
-           	
-           	$tmp_cur_line_due = get_due_to_date_amount( $entity_type , $entity_id,  $end_date_parm) ; 	
-           
-           	} 
+      }
+      elseif ($status_label == 'Pending'  || $status_label == 'In Progress' || $status_label == 'Overdue') {
+        if(strlen($end_date_parm) > 0) {
+          $tmp_cur_line_due = get_due_to_date_amount( $entity_type , $entity_id,  $end_date_parm);
         }
-        
-        
-         }else if ($type == 'contribution'){
-		         	 if($status_label == 'Completed'){
+      }
+    }
+    elseif ($type == 'contribution') {
+		         	 if($status_label == 'Completed') {
 		        //   $tmp_cur_line_recieved = $total_amount; 
 		        //   $tmp_cur_line_balance = 0; 
 		           $tmp_cur_line_due = 0 ;
 		        
-		        }else if($status_label == 'Pending'){
+		        }else if($status_label == 'Pending') {
 		          // $tmp_cur_line_recieved = 0 ; 
 		          // $tmp_cur_line_balance = $total_amount; 
-		           if( strlen($end_date_parm) > 0){
+		           if( strlen($end_date_parm) > 0) {
 		           	$tmp_cur_line_due = get_due_to_date_amount( $entity_type , $entity_id,  $end_date_parm) ; 	
 		           }
 		        }
-      
-         	 
          
-         
-         }else if($type == 'recurring'){
-         	 
-     
-         	
-         
-         
-         }
-         
-        
-        
-    	
-    
     }
-    
-    function setTitle( $title ) {
-        if ( $title ) {
-            CRM_Utils_System::setTitle( $title );
-        } else {
-            CRM_Utils_System::setTitle(ts('Financial Aging'));
-        }
+    else if($type == 'recurring') {
     }
+  }
+
+  function setTitle($title) {
+    if ($title) {
+      CRM_Utils_System::setTitle($title);
+    }
+    else {
+      CRM_Utils_System::setTitle(ts('Financial Aging'));
+    }
+  }
    
-    /* 
-     * Functions below generally don't need to be modified
-     */
-    function count( ) {
-          
-          
-          
-          $sql = $this->all( );
-           
-           $dao = CRM_Core_DAO::executeQuery( $sql,
-                                             CRM_Core_DAO::$_nullArray );
-           return $dao->N;
-           
-           // return 50; 
-    }
-       
-    function contactIDs( $offset = 0, $rowcount = 0, $sort = null) { 
-        return $this->all( $offset, $rowcount, $sort, false, true );
-    }
-       
-       
-    function &columns( ) {
-        return $this->_columns;
+  /**
+   * Functions below generally don't need to be modified
+   */
+  function count() {
+    $sql = $this->all();
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    return $dao->N;
+  }
+
+  function contactIDs( $offset = 0, $rowcount = 0, $sort = null) { 
+    return $this->all( $offset, $rowcount, $sort, false, true );
+  }
+
+  function &columns() {
+    return $this->_columns;
+  }
+
+  function summary() {
+    require_once 'utils/util_money.php';
+
+    if (pogstone_is_user_authorized('access CiviContribute') == FALSE) {
+      return;
     }
 
-   
+    $sum_array = array();
+    $grand_totals = true; 
+    $groupby = "currency";
+    $where = $this->where(); 
 
-   function summary( ) {
-   
-       require_once 'utils/util_money.php';
-       if ( pogstone_is_user_authorized('access CiviContribute') == false ){
-       
-       		return ; 
-       }
-       
-   	
-   	$sum_array = array();
-   	
-   	$grand_totals = true; 
-   	
-   	$groupby = "currency";
-   	
-   
-        $where = $this->where(); 
+    require_once('utils/util_money.php');
+    $tmp_order_by = "";
+    $all_contacts = true; 
+    $get_contact_name = true; 
+ 
+    $exclude_after_date = ''; 
+    $layout_choice = $this->_formValues['layout_choice'];
+
+    $groups_of_contact = $this->_formValues['group_of_contact'];
+    $mem_types_of_contact  = $this->_formValues['membership_type_of_contact'];
+    $mem_orgs_of_contact  =  $this->_formValues['membership_org_of_contact'];
+
+    $ct_type_prefix_id = '';
+    $include_closed_items = true;
       
-      require_once ('utils/util_money.php');
-      $tmp_order_by = "";
-      $all_contacts = true; 
-      $get_contact_name = true; 
-      
- 	//print "<br>where: ".$where;
- 	$exclude_after_date = ''; 
- 	
- 	 $layout_choice = $this->_formValues['layout_choice'] ;
- 	 
- 	 $groups_of_contact = $this->_formValues['group_of_contact'];
- 	$mem_types_of_contact  = $this->_formValues['membership_type_of_contact'] ; 
- 	$mem_orgs_of_contact  =  $this->_formValues['membership_org_of_contact'] ; 
- 	
- 	 $ct_type_prefix_id = '' ; 
- 	 $include_closed_items = true; 
- 	 
- 	   $start_date_parm  = CRM_Utils_Date::processDate( $this->_formValues['start_date'] );
- 	   $end_date_parm  = CRM_Utils_Date::processDate( $this->_formValues['end_date'] ); 
- 	   
- 	     $financaial_set_id  = $this->_formValues['financial_set'] ;
+    $start_date_parm = CRM_Utils_Date::processDate($this->_formValues['start_date']);
+    $end_date_parm = CRM_Utils_Date::processDate($this->_formValues['end_date']);
+
+    $financaial_set_id  = $this->_formValues['financial_set'];
+
+    if(strlen($financaial_set_id) > 0 ) {
+      $ct_type_prefix_id = $financaial_set_id; 
+      // print "<br> financial set id : ". $ct_type_prefix_id;
+      // print "<br><br> financial categories sql: ".$tmp_fc;
+    }
      
-     
-     
-     if(strlen($financaial_set_id) > 0 ){
-     	  $ct_type_prefix_id = $financaial_set_id; 
-     //	 print "<br> financial set id : ". $ct_type_prefix_id;
-     	//print "<br><br> financial categories sql: ".$tmp_fc;
-     }
- 	
- 	$empty_str = "" ; 
- 	$include_prepayments = true;
- 	require_once('utils/finance/Obligation.php');
- 	$obligation = new Obligation();
-      $sql_inner = $obligation->get_sql_string_for_obligations($contactIDs,  $tmp_order_by, $end_date_parm , $start_date_parm,  $exclude_after_date , $error,  $all_contacts, $get_contact_name, $where, $groupby,
+    $empty_str = "";
+    $include_prepayments = true;
+    require_once('utils/finance/Obligation.php');
+    $obligation = new Obligation();
+
+    $sql_inner = $obligation->get_sql_string_for_obligations(
+      $contactIDs, $tmp_order_by, $end_date_parm , $start_date_parm,  $exclude_after_date , $error,
+      $all_contacts, $get_contact_name, $where, $groupby,
       $ct_type_prefix_id , $include_closed_items , 
-       $groups_of_contact, $mem_types_of_contact , $mem_orgs_of_contact, $empty_str,  $layout_choice, $this->FINANCIAL_TYPE_IDS, $this->GENERAL_LEDGER_CODES, $include_prepayments  );
-      
-    
-      	
-  	
-   	// print "<br><br>Summary sql: ".$sql;
-   	 
-   	
-       
-       $sql =  $sql_inner; 
-   	 $dao = CRM_Core_DAO::executeQuery( $sql,         CRM_Core_DAO::$_nullArray );
-      
-        while ( $dao->fetch( ) ) {
-   	
-	   	$cur_sum = array();
-	   	
-	   	$cur_sum['Currency'] = $dao->currency;
-	   	$cur_sum['Amount'] = $dao->total_amount;
-	   	$cur_sum['Received'] = $dao->received;  
-	   	$cur_sum['Adjusted'] = $dao->adjusted;  
-	  	$cur_sum['Balance'] = $dao->balance;
-	   	
-	   	$cur_sum['Records Combined'] = $dao->rec_count;  
-	   	/*
-	   	  ts('Contribution Type' )  => 'contrib_type',
-                                 ts('Accounting Code') => 'accounting_code',
-                                  ts('Financial Category') => 'financial_category',     
-                                  ts('Currency')		=> 'currency',
-                                  ts('Charged') 	=> 'total_amount',  
-                                  ts('Received') 	=> 'received',  
-                                  ts('Adjusted') 	=> 'adjusted',  
-                                  ts('Balance') 	=> 'balance',  
-                                   ts('Records Combined') => 'rec_count',  
-                                   */
-	   	
-	   	$sum_array[] = $cur_sum;   
-   	
-   	}
-   	$dao->free();
-   	
-       return $sum_array;
-       
-       
-       
-      
-   }
-   
-   
-   }
-   
-   
-   
-   ?>
+      $groups_of_contact, $mem_types_of_contact , $mem_orgs_of_contact, $empty_str,  $layout_choice, $this->FINANCIAL_TYPE_IDS, $this->GENERAL_LEDGER_CODES, $include_prepayments);
+
+    $sql = $sql_inner; 
+    $dao = CRM_Core_DAO::executeQuery($sql);
+
+    while ($dao->fetch()) {
+      $cur_sum = array();
+
+      $cur_sum['Currency'] = $dao->currency;
+      $cur_sum['Amount'] = $dao->total_amount;
+      $cur_sum['Received'] = $dao->received;
+      $cur_sum['Adjusted'] = $dao->adjusted;
+      $cur_sum['Balance'] = $dao->balance;
+
+      $cur_sum['Records Combined'] = $dao->rec_count;
+
+      /*
+       ts('Contribution Type' ) => 'contrib_type',
+       ts('Accounting Code') => 'accounting_code',
+       ts('Financial Category') => 'financial_category',
+       ts('Currency')        => 'currency',
+       ts('Charged')     => 'total_amount',
+       ts('Received')     => 'received',
+       ts('Adjusted')     => 'adjusted',
+       ts('Balance')     => 'balance',
+       ts('Records Combined') => 'rec_count',
+      */
+
+      $sum_array[] = $cur_sum;   
+    }
+
+    $dao->free();
+    return $sum_array;
+  }
+
+}
