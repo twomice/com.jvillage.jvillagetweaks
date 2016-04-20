@@ -57,8 +57,22 @@
     {include file="CRM/Contact/Form/Search/Custom/EmptyResults.tpl"}
 {/if}
 
+{*
+  [ML] JVILLAGE #784
+  Some custom searches, such as "Contact Financial Summary",
+  show a table instead of just key:val.
+*}
 {if $summary}
-    {$summary.summary}: {$summary.total}
+  {foreach from=$summary key=key_name item=cur_sum}
+    <table border=1>
+    <tr class="columnheader">
+      {foreach from=$cur_sum key=k item=sum}<td>{$k}</td>{/foreach}
+    </tr>
+    <tr>
+      {foreach from=$cur_sum key=k item=sum}<td>{$sum}</td>{/foreach}
+    </tr>
+    </table>
+  {/foreach}
 {/if}
 
 {if $rows}
