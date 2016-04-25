@@ -653,6 +653,24 @@ class CRM_Contact_Form_Search_Custom_ContactFinancialExclusionSummary extends CR
     return $this->all($offset, $rowcount, $sort, false, true);
   }
 
+  /**
+   * This relies on a patch on core.
+   * If the prevnext cache is not filled in correctly, we cannot select only a few individuals
+   * in actions, such as create pdf letters.
+   */
+  function fillupPrevNextCacheSQL($start, $end, $sort, $cacheKey) {
+    $sql = $this->contactIDs($start, $end, $sort);
+
+    $replaceSQL = "SELECT contact_a.id as contact_id";
+    $insertSQL = "
+INSERT INTO civicrm_prevnext_cache (entity_table, entity_id1, entity_id2, cacheKey, data)
+SELECT DISTINCT 'civicrm_contact', contact_a.id, contact_a.id, '$cacheKey', CONCAT('Contact ', contact_a.id)
+";
+
+    $sql = str_replace($replaceSQL, $insertSQL, $sql);
+    return $sql;
+  }
+
   function &columns() {
     return $this->_columns;
   }
