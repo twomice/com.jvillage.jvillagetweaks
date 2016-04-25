@@ -179,15 +179,13 @@ class CRM_Contact_Form_Search_Custom_HouseholdListing extends CRM_Contact_Form_S
     * Construct the search query
     */       
   function all( $offset = 0, $rowcount = 0, $sort = null, $includeContactIDs = false, $onlyIDs = false ) {
-
-	// Get data for contacts 
-	if ( $onlyIDs ) {
-        	$select  = "ifnull( sp.spouse_a_id, contact_a.id )  as contact_id, hh.id as household_id, sp.spouse_b_id as spouse_b_id";
-        	$outer_select = " t1.contact_id as contact_id  ";
-    	} else {
-    	
+    // Get data for contacts 
+    if ($onlyIDs) {
+      $select  = "ifnull(sp.spouse_a_id, contact_a.id) as contact_id, hh.id as household_id, sp.spouse_b_id as spouse_b_id, contact_a.display_name";
+      $outer_select = "t1.contact_id as contact_id";
+    }
+    else {
     	/*
-    	
     	 ts('Contact/Adult A (sort)')=> 'sort_name' ,
 				 ts('Adult/Spouse/Partner B (sort)') => 'spouse_b_sort_name' ,
 				 ts('Contact/Adult A Display Name') => 'adult_a_display_name', 
@@ -259,7 +257,6 @@ class CRM_Contact_Form_Search_Custom_HouseholdListing extends CRM_Contact_Form_S
      		$outer_select = " t1.* , group_concat( distinct phone_a.phone )  as adult_a_phone, group_concat( distinct phone_b.phone)  as spouse_b_phone, email_a.email as adult_a_email, email_b.email as spouse_b_email,
      		 phone_hh.phone as household_phone, address_a.street_address, address_a.supplemental_address_1, address_a.city, state_a.abbreviation as state_abbreviation,  address_a.postal_code, ".$kid_select.$tmp_age_sql_child."
      		 ".$tmp_age_sql_a.", ".$tmp_age_sql_b."  "; 
-		
 	}
 	
 	$from  = $this->from( );
@@ -528,6 +525,25 @@ $result = civicrm_api('JointGreetings', 'getsingle', $params);
     function contactIDs( $offset = 0, $rowcount = 0, $sort = null) { 
         return $this->all( $offset, $rowcount, $sort, false, true );
     }
+
+  /**
+   * This relies on a patch on core.
+   * If the prevnext cache is not filled in correctly, we cannot select only a few individuals
+   * in actions, such as create pdf letters.
+   */
+  function fillupPrevNextCacheSQL($start, $end, $sort, $cacheKey) {
+    $sql = $this->contactIDs($start, $end, $sort);
+
+    $replaceSQL = "SELECT t1.contact_id as contact_id";
+    $insertSQL = "
+INSERT INTO civicrm_prevnext_cache (entity_table, entity_id1, entity_id2, cacheKey, data)
+SELECT DISTINCT 'civicrm_contact', t1.contact_id, t1.contact_id, '$cacheKey', t1.display_name
+";
+
+    $sql = str_replace($replaceSQL, $insertSQL, $sql);
+dsm($sql);
+    return $sql;
+  }
        
     function &columns( ) {
         return $this->_columns;
