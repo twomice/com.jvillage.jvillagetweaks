@@ -541,7 +541,6 @@ SELECT DISTINCT 'civicrm_contact', t1.contact_id, t1.contact_id, '$cacheKey', t1
 ";
 
     $sql = str_replace($replaceSQL, $insertSQL, $sql);
-dsm($sql);
     return $sql;
   }
        
