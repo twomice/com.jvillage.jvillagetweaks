@@ -361,7 +361,6 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
     //for only contact ids ignore order.
     if (!$onlyIDs) {
       // Define ORDER BY for query in $sort, with default value
-      //print "<br>sort: ".$sort."<br>";
       if (! empty($sort)) {
         if (is_string($sort)) {
           $sql .= " ORDER BY $sort ";
@@ -629,6 +628,25 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
 
   function contactIDs($offset = 0, $rowcount = 0, $sort = null) {
     return $this->all($offset, $rowcount, $sort, false, true);
+  }
+
+  /**
+   * This relies on a patch on core.
+   * If the prevnext cache is not filled in correctly, we cannot select only a few individuals
+   * in actions, such as create pdf letters.
+   */
+  function fillupPrevNextCacheSQL($start, $end, $sort, $cacheKey) {
+    $sql = $this->contactIDs($start, $end, $sort);
+
+    $replaceSQL = "SELECT mourner_contact_id as contact_id";
+    $insertSQL = "
+INSERT INTO civicrm_prevnext_cache (entity_table, entity_id1, entity_id2, cacheKey, data)
+SELECT DISTINCT 'civicrm_contact', mourner_contact_id, mourner_contact_id, '$cacheKey', contact_a.display_name
+";
+
+    $sql = str_replace($replaceSQL, $insertSQL, $sql);
+
+    return $sql;
   }
 
   function setTitle($title) {
