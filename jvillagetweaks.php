@@ -17,20 +17,6 @@ function jvillagetweaks_civicrm_config(&$config) {
     $root = '/var/aegir/platforms/civicrm-4.7d6';
   }
 
-  global $civicrm_setting;
-  $civicrm_setting['Extension Preferences']['ext_repo_url'] = NULL;
-  $civicrm_setting['Directory Preferences']['extensionsDir'] = "$root/pogstone_extensions/";
-  $civicrm_setting['Directory Preferences']['customTemplateDir'] = "$root/civicrm_custom_templates/";
-  $civicrm_setting['Directory Preferences']['uploadDir'] = "$root/sites/$host/files/civicrm/upload/";
-  $civicrm_setting['Directory Preferences']['imageUploadDir'] = "$root/sites/$host/files/civicrm/persist/contribute/";
-  # $civicrm_setting['Directory Preferences']['customFileUploadDir'] = "$root/sites/$host/files/civicrm/custom/";
-  $civicrm_setting['Directory Preferences']['customFileUploadDir'] = "$root/sites/$host/files/";
-
-  $civicrm_setting['URL Preferences']['userFrameworkResourceURL'] = "https://$host/sites/all/modules/civicrm";
-  $civicrm_setting['URL Preferences']['extensionsURL'] = "https://$host/pogstone_extensions/";
-  # $civicrm_setting['URL Preferences']['imageUploadURL'] = "https://$host/sites/$host/files/civicrm/persist/contribute/";
-  $civicrm_setting['URL Preferences']['imageUploadURL'] = "https://$host/sites/$host/files/";
-
   // redmine:766
   // Even if this is set above, it was not being set correctly in
   // packages/kcfinder/integration/civicrm.php
