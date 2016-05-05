@@ -731,37 +731,36 @@ LEFT JOIN civicrm_price_field pf ON li.price_field_id = pf.id ";
                            $offset, $rowcount, $sort,
                            $includeContactIDs, $groupBy ); 
                            */
-                           
-       
+
        $tmp_full_sql  = "select ".$totalSelect.$from." WHERE ".$where.$groupBy; 
       // $tmp_full_sql = "select sum(t1.qty) as total_qty, sum(t1.line_total) as total_amount,  t1.* FROM ( ".$inner_sql."  ) as t1"; 
         //   " GROUP BY t1.price_field_id, t1.price_field_value_id , t1.title, t1.start_date ";  
         //print "<br><br>summary sql:  ".$tmp_full_sql; 
        
-       }else if($this->_layoutChoice == 'detail'){
-        $selectClause = " contact_a.id            as contact_id  , p.id as participant_id, '' as participant_link, 
-contact_a.sort_name   as display_name, contact_a.first_name, contact_a.last_name, 
-civicrm_email.email as email, civicrm_phone.phone as phone, civicrm_address.street_address as street_address, civicrm_note.note as part_note, 
-civicrm_address.supplemental_address_1 as supplemental_address_1, civicrm_address.city as city ,civicrm_address.postal_code as postal_code, 
-civicrm_state_province.abbreviation as state, p.registered_by_id, contact_b.sort_name as registered_by_name,
-li.id as line_item_id, 
-li.qty, li.unit_price, li.line_total, li.participant_count, if( pf.label <> li.label,  concat(pf.label, ' - ', li.label), li.label) as label, 
-e.currency as currency, ".$tmp_age_calc."
-p.register_date, e.title as event_title, e.start_date as event_start_date,
-mt.name as membership_type, ms.label as membership_status, status.label as participant_status_label
- "; 
+       }
+       elseif ($this->_layoutChoice == 'detail') {
+        if ($onlyIDs) {
+          $selectClause = "contact_a.id as contact_id, p.id as participant_id ";
+        }
+        else {
+          $selectClause = "contact_a.id as contact_id, p.id as participant_id, '' as participant_link, contact_a.sort_name as display_name,
+          contact_a.first_name, contact_a.last_name, civicrm_email.email as email, civicrm_phone.phone as phone,
+          civicrm_address.street_address as street_address, civicrm_note.note as part_note,
+          civicrm_address.supplemental_address_1 as supplemental_address_1, civicrm_address.city as city ,civicrm_address.postal_code as postal_code,
+          civicrm_state_province.abbreviation as state, p.registered_by_id, contact_b.sort_name as registered_by_name,
+          li.id as line_item_id,
+          li.qty, li.unit_price, li.line_total, li.participant_count, if( pf.label <> li.label,  concat(pf.label, ' - ', li.label), li.label) as label,
+          e.currency as currency, ".$tmp_age_calc."
+          p.register_date, e.title as event_title, e.start_date as event_start_date,
+          mt.name as membership_type, ms.label as membership_status, status.label as participant_status_label ";
+        }
  
- // mt.name as membership_type, ms.label as membership_status, count(m.id) as num_memberships
+          // mt.name as membership_type, ms.label as membership_status, count(m.id) as num_memberships
              
-        $groupBy = " group by li.id";
-       $tmp_full_sql =  $this->sql( $selectClause,
-                           $offset, $rowcount, $sort,
-                           $includeContactIDs, $groupBy );
-              
-              
-            //  print  "<br><br>sql: ".$tmp_full_sql;              
-          
-       }else if($this->_layoutChoice == 'detail_broad') {
+       $groupBy = " group by li.id";
+       $tmp_full_sql = $this->sql($selectClause, $offset, $rowcount, $sort, $includeContactIDs, $groupBy);
+    }
+    elseif ($this->_layoutChoice == 'detail_broad') {
          $sql_li_name_sql = $this->util_get_priceset_lineitems_list_sql();
                  
         $params = array();
@@ -816,9 +815,14 @@ mt.name as membership_type, ms.label as membership_status, status.label as parti
          
                 $cf_names = $this->util_get_custom_field_name_list_for_select(); 
                 
-             //   print "<br><br> custom field names: ".$cf_names; 
+             //   print "<br><br> custom field names: ".$cf_names;
+
+          if ($onlyIDs) {
+            $selectClause = "contact_a.id as contact_id, p.id as participant_id";
+          }
+          else {
              
-             $selectClause = " contact_a.id            as contact_id  , p.id as participant_id, '' as participant_link,
+             $selectClause = "contact_a.id as contact_id, p.id as participant_id, '' as participant_link,
 contact_a.sort_name   as display_name, contact_a.first_name, contact_a.last_name, 
 civicrm_email.email as email, civicrm_phone.phone as phone, civicrm_address.street_address as street_address, civicrm_note.note as part_note, 
 civicrm_address.supplemental_address_1 as supplemental_address_1, civicrm_address.city as city ,civicrm_address.postal_code as postal_code, 
@@ -827,6 +831,8 @@ civicrm_state_province.abbreviation as state, p.registered_by_id, contact_b.sort
 p.register_date, e.title as event_title, e.start_date as event_start_date,
 mt.name as membership_type, ms.label as membership_status , status.label as participant_status_label
  "; 
+
+         }
  
  // mt.name as membership_type, ms.label as membership_status, count(m.id) as num_memberships
          // Need to determine how many line items are connected to this participant, so that we have the correct number of columns in the result set/select statement. 
@@ -839,10 +845,9 @@ mt.name as membership_type, ms.label as membership_status , status.label as part
                    */
          
          $custom_field_sql = $this->util_get_custom_field_sql();
-         
-             
+
         $groupBy = " group by p.id";
-       $sql = "Select $selectClause 
+       $sql = "SELECT $selectClause 
                    FROM civicrm_participant p LEFT JOIN civicrm_event e ON p.event_id = e.id
                    LEFT JOIN civicrm_participant_status_type status ON p.status_id = status.id
 Left  JOIN civicrm_participant p2 on p.registered_by_id = p2.id
@@ -886,16 +891,13 @@ left join civicrm_state_province on civicrm_address.state_province_id = civicrm_
          */
      //       print "<hr><br><br>sql: ".$tmp_full_sql;  
          
-         }else{
-             print "<br><br>Unrecognized layout choice: ".$this->_layoutChoice;
-         }
+    }
+    else {
+      print "<br><br>Unrecognized layout choice: ".$this->_layoutChoice;
+    }
 
-      //     print "<br><br> all column names:";
-      //     print_r($this->_all_column_names);    
-     // print "<br><br>full sql: ".$tmp_full_sql;  
-
-     return $tmp_full_sql; 
-   }
+    return $tmp_full_sql; 
+  }
     
   function from() {
 
@@ -1187,7 +1189,7 @@ sum(t1.actual_participant_count) as actual_participant_count, t1.label, t1.curre
  ";
 
        $tmp_inner_sql = self::all();
-       $sql = "Select ". $tmp_select." from ( ".$tmp_inner_sql." ) as t1"; 
+       $sql = "SELECT ". $tmp_select." from ( ".$tmp_inner_sql." ) as t1"; 
 
    $totalSelect = $this->select('sum_only');
        $from  = $this->from();
@@ -1241,6 +1243,25 @@ sum(t1.actual_participant_count) as actual_participant_count, t1.label, t1.curre
 
   function contactIDs($offset = 0, $rowcount = 0, $sort = null) {
     return $this->all($offset, $rowcount, $sort, false, true);
+  }
+
+  /**
+   * This relies on a patch on core.
+   * If the prevnext cache is not filled in correctly, we cannot select only a few individuals
+   * in actions, such as create pdf letters.
+   */
+  function fillupPrevNextCacheSQL($start, $end, $sort, $cacheKey) {
+    $sql = $this->contactIDs($start, $end, $sort);
+
+    $replaceSQL = "SELECT contact_a.id as contact_id, p.id as participant_id";
+    $insertSQL = "
+INSERT INTO civicrm_prevnext_cache (entity_table, entity_id1, entity_id2, cacheKey, data)
+SELECT DISTINCT 'civicrm_contact', contact_a.id as contact_id, contact_a.id as contact_id, '$cacheKey', contact_a.display_name
+";
+
+    $sql = str_replace($replaceSQL, $insertSQL, $sql);
+dsm($sql);
+    return $sql;
   }
 
   function templateFile() {

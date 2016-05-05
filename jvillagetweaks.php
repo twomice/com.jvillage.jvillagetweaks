@@ -10,17 +10,32 @@ require_once 'jvillagetweaks.civix.php';
 function jvillagetweaks_civicrm_config(&$config) {
   _jvillagetweaks_civix_civicrm_config($config);
 
-  // redmine:766
-  // Even if this is set in local.settings.php, it was not being set correctly in
-  // packages/kcfinder/integration/civicrm.php
-  $config->imageUploadURL = 'https://' . $_SERVER['HTTP_HOST'] . '/sites/' . $_SERVER['HTTP_HOST'] . '/files/';
+  $host = $_SERVER['HTTP_HOST'];
+  $root = '/var/aegir/platforms/civicrm-4.7';
 
   if ($config->userFramework == 'Drupal6') {
-    $config->imageUploadDir = '/var/aegir/platforms/civicrm-4.7d6/sites/' . $_SERVER['HTTP_HOST'] . '/files/';
+    $root = '/var/aegir/platforms/civicrm-4.7d6';
   }
-  else {
-    $config->imageUploadDir = '/var/aegir/platforms/civicrm-4.7/sites/' . $_SERVER['HTTP_HOST'] . '/files/';
-  }
+
+  global $civicrm_setting;
+  $civicrm_setting['Extension Preferences']['ext_repo_url'] = NULL;
+  $civicrm_setting['Directory Preferences']['extensionsDir'] = "$root/pogstone_extensions/";
+  $civicrm_setting['Directory Preferences']['customTemplateDir'] = "$root/civicrm_custom_templates/";
+  $civicrm_setting['Directory Preferences']['uploadDir'] = "$root/sites/$host/files/civicrm/upload/";
+  $civicrm_setting['Directory Preferences']['imageUploadDir'] = "$root/sites/$host/files/civicrm/persist/contribute/";
+  # $civicrm_setting['Directory Preferences']['customFileUploadDir'] = "$root/sites/$host/files/civicrm/custom/";
+  $civicrm_setting['Directory Preferences']['customFileUploadDir'] = "$root/sites/$host/files/";
+
+  $civicrm_setting['URL Preferences']['userFrameworkResourceURL'] = "https://$host/sites/all/modules/civicrm";
+  $civicrm_setting['URL Preferences']['extensionsURL'] = "https://$host/pogstone_extensions/";
+  # $civicrm_setting['URL Preferences']['imageUploadURL'] = "https://$host/sites/$host/files/civicrm/persist/contribute/";
+  $civicrm_setting['URL Preferences']['imageUploadURL'] = "https://$host/sites/$host/files/";
+
+  // redmine:766
+  // Even if this is set above, it was not being set correctly in
+  // packages/kcfinder/integration/civicrm.php
+  $config->imageUploadURL = "https://$host/sites/$host/files/";
+  $config->imageUploadDir = "$root/sites/$host/files/";
 }
 
 /**
