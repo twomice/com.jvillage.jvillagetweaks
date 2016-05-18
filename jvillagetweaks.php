@@ -167,7 +167,7 @@ function jvillagetweaks_civicrm_pre($op, $objectName, $id, &$params) {
 }
 
 /**
- * Implements hook_coreResourceList
+ * Implements hook_coreResourceList().
  */
 function jvillagetweaks_civicrm_coreResourceList(&$items, $region) {
   // Override the CKEditor config file location
@@ -180,4 +180,22 @@ function jvillagetweaks_civicrm_coreResourceList(&$items, $region) {
   $items[] = array('config' => array(
     'CKEditorCustomConfig' => Civi::resources()->getUrl('com.jvillage.jvillagetweaks', 'js/crm-ckeditor-config-6.js')),
   );
+}
+
+/**
+ * Implements hook_civicrm_check().
+ */
+function jvillagetweaks_civicrm_check(&$messages) {
+  $checks = array(
+    'SmtpPassword',
+    'MailingsPending',
+  );
+
+  foreach ($checks as $c) {
+    $t = 'CRM_Jmanage_Utils_Check_' . $c;
+    if (class_exists($t)) {
+      $class = new $t();
+      $class->check($messages);
+    }
+  }
 }
