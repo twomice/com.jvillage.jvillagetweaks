@@ -1,0 +1,9 @@
+/**
+ * Redmine#862 On the "edit membership types" admin form,
+ * hide the status message saying it's impossible to edit relationships.
+ *
+ * This has an associated buildForm to unfreeze the field.
+ */
+#crm-container .crm-membership-type-form-block tr.crm-membership-type-form-block-relationship_type_id > td > .status.message {
+  display: none;
+}

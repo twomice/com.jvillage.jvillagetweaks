@@ -153,6 +153,15 @@ function jvillagetweaks_civicrm_buildForm($formName, &$form) {
       $buttons->_elements[0]->_attributes['value'] = ts('Confirm');
     }
   }
+  elseif ($formName == 'CRM_Member_Form_MembershipType') {
+    // redmine #862, allow to edit relationship types of existing memberships.
+    CRM_Core_Resources::singleton()->addStyleFile('com.jvillage.jvillagetweaks', 'css/admin-tweaks.css');
+
+    if ($form->elementExists('relationship_type_id')) {
+      $e = $form->getElement('relationship_type_id');
+      $e->unfreeze();
+    }
+  }
 }
 
 /**
