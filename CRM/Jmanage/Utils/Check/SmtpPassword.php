@@ -33,7 +33,7 @@ class CRM_Jmanage_Utils_Check_SmtpPassword {
           $error = TRUE;
           $messages[] = new CRM_Utils_Check_Message(
             'jvillagetweaks_smtppassword',
-            ts('<a %1>Outgoing emails</a> being password seems badly encrypted.', array(1 => 'href="' . CRM_Utils_System::url('civicrm/admin/setting/smtp', array('reset' => 1)) . '"')),
+            ts('<a %1>Outgoing emails</a> password seems badly encrypted.', array(1 => 'href="' . CRM_Utils_System::url('civicrm/admin/setting/smtp', array('reset' => 1)) . '"')),
             ts('Invalid outbound email password'),
             \Psr\Log\LogLevel::CRITICAL,
             'fa-flag'

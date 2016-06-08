@@ -1260,7 +1260,6 @@ SELECT DISTINCT 'civicrm_contact', contact_a.id as contact_id, contact_a.id as c
 ";
 
     $sql = str_replace($replaceSQL, $insertSQL, $sql);
-dsm($sql);
     return $sql;
   }
 
