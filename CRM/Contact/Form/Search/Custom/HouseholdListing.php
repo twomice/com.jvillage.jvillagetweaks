@@ -233,15 +233,20 @@ SELECT ".$outer_select." FROM ( SELECT $select
 FROM  $from
 WHERE $where
 GROUP BY ifnull( rel.contact_id_b,  contact_a.id ) ) as t1
-LEFT JOIN civicrm_contact con_a ON t1.contact_id  = con_a.id
-LEFT JOIN civicrm_phone phone_a ON t1.contact_id = phone_a.contact_id AND phone_a.phone_type_id =2
-LEFT JOIN civicrm_phone phone_b ON t1.spouse_b_id = phone_b.contact_id AND phone_b.phone_type_id =2
-LEFT JOIN civicrm_phone phone_hh ON t1.household_id = phone_hh.contact_id AND phone_hh.is_primary =1
-LEFT JOIN civicrm_email email_a ON t1.contact_id = email_a.contact_id AND email_a.is_primary =1
-LEFT JOIN civicrm_email email_b ON t1.spouse_b_id = email_b.contact_id AND email_b.is_primary =1
-LEFT JOIN civicrm_address address_a ON t1.contact_id = address_a.contact_id AND address_a.is_primary =1
-LEFT JOIN civicrm_state_province state_a ON address_a.state_province_id = state_a.id ".$kid_join_sql."
- group by t1.contact_id";
+LEFT JOIN civicrm_contact con_a ON t1.contact_id  = con_a.id ";
+
+    if (! $onlyIDs) {
+      $sql .= "
+LEFT JOIN civicrm_phone phone_a ON t1.contact_id = phone_a.contact_id AND phone_a.phone_type_id = 2
+LEFT JOIN civicrm_phone phone_b ON t1.spouse_b_id = phone_b.contact_id AND phone_b.phone_type_id = 2
+LEFT JOIN civicrm_phone phone_hh ON t1.household_id = phone_hh.contact_id AND phone_hh.is_primary = 1
+LEFT JOIN civicrm_email email_a ON t1.contact_id = email_a.contact_id AND email_a.is_primary = 1
+LEFT JOIN civicrm_email email_b ON t1.spouse_b_id = email_b.contact_id AND email_b.is_primary = 1
+LEFT JOIN civicrm_address address_a ON t1.contact_id = address_a.contact_id AND address_a.is_primary = 1
+LEFT JOIN civicrm_state_province state_a ON address_a.state_province_id = state_a.id";
+    }
+
+    $sql .= " " . $kid_join_sql . " GROUP BY t1.contact_id";
 
     // , ifnull( spouseA.id,  contact_a.id )
     //order by month(birth_date), oc_day";
@@ -468,7 +473,7 @@ LEFT JOIN civicrm_state_province state_a ON address_a.state_province_id = state_
   }
 
   function contactIDs($offset = 0, $rowcount = 0, $sort = null) {
-    return $this->all($offset, $rowcount, $sort, false, true );
+    return $this->all($offset, $rowcount, $sort, false, true);
   }
 
   /**
