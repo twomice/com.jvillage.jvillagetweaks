@@ -154,92 +154,81 @@ class CRM_Contact_Form_Search_Custom_HouseholdListing extends CRM_Contact_Form_S
       $outer_select = "t1.contact_id as contact_id";
     }
     else {
-    	/*
-    	 ts('Contact/Adult A (sort)')=> 'sort_name' ,
-				 ts('Adult/Spouse/Partner B (sort)') => 'spouse_b_sort_name' ,
-				 ts('Contact/Adult A Display Name') => 'adult_a_display_name',
-				 ts('Adult B Display Name') => 'spouse_b_display_name',
-				 ts('Household') => 'household_sort_name',
-				 */
-    	
-    		
-		 $endDate = CRM_Utils_Date::processDate( $this->_formValues['end_date'] );
-		  if ( $endDate ) {
-		  	$yyyy = substr( $endDate , 0, 4);
-		  	$mm = substr( $endDate , 4, 2);
-		  	$dd = substr( $endDate , 6, 2);
-		  	
-		  	$tmp = $yyyy."-".$mm."-".$dd ;
-		         $age_cutoff_date =  "'".$tmp."'";
-		   }else{
-		   	$age_cutoff_date = "now()";
-		
-		   }
+      /*
+      ts('Contact/Adult A (sort)')=> 'sort_name' ,
+      ts('Adult/Spouse/Partner B (sort)') => 'spouse_b_sort_name' ,
+      ts('Contact/Adult A Display Name') => 'adult_a_display_name',
+      ts('Adult B Display Name') => 'spouse_b_display_name',
+      ts('Household') => 'household_sort_name',
+      */
 
-		
-		 $tmp_age_calc_a = "((date_format($age_cutoff_date,'%Y') - date_format(con_a.birth_date,'%Y')) - (date_format($age_cutoff_date,'00-%m-%d') < date_format(con_a.birth_date,'00-%m-%d')))";
-    	
-    		$tmp_age_sql_a = " ".$tmp_age_calc_a."  AS adult_a_age ";
-    		
-    		 $tmp_age_calc_b = "((date_format($age_cutoff_date,'%Y') - date_format(t1.spouse_b_birth_date,'%Y')) - (date_format($age_cutoff_date,'00-%m-%d') < date_format(t1.spouse_b_birth_date,'00-%m-%d')))";
-    	
-    		$tmp_age_sql_b = " ".$tmp_age_calc_b."  AS adult_b_age ";
-    		
-    		
-		$select =   "  ifnull( sp.spouse_a_sort_name, contact_a.sort_name )  as sort_name  ,  ifnull( sp.spouse_a_id, contact_a.id )  as contact_id ,
-		  ifnull(sp.spouse_a_display_name, contact_a.display_name) as adult_a_display_name,
-		  hh.sort_name as household_sort_name, hh.id as household_id,
-		  sp.spouse_b_sort_name as spouse_b_sort_name,
-		  sp.spouse_b_display_name as spouse_b_display_name,
-		  sp.spouse_b_birth_date as spouse_b_birth_date,
-		  sp.spouse_b_id as spouse_b_id ";
-		
-		  if( count( $this->_formValues['membership_type_of_contact'] ) > 0 || count( $this->_formValues['membership_org_of_contact'] ) > 0     ){
-		  	$select =  $select." ,  group_concat(distinct memberships_a.join_date) as mem_join_date, group_concat(distinct mt.name ) as mem_type_name ";
-		
-		  }
-		
-		/* $outer_select = " t1.hh_contact_id , t1.household_sort_name, t1.contact_id, t1.sort_name, t1.spouse_a_sort_name, t1.spouse_b_sort_name,
-     t1.adult_a_display_name,  t1.spouse_b_display_name  ";  */
+      $endDate = CRM_Utils_Date::processDate($this->_formValues['end_date']);
 
-     		/*
-     		$max_kids = 0 ;
-     		$kid_select = "";
-     		for($kid=1; $kid<= $max_kids; $kid++){
-     		    $kid_select = $kid_select." kc".$kid.".display_name as kid".$kid."  , ";
-     		
-     		
-     		   }
+      if ($endDate) {
+        $yyyy = substr( $endDate , 0, 4);
+        $mm = substr( $endDate , 4, 2);
+        $dd = substr( $endDate , 6, 2);
 
-     	*/
-     	
-     		// $kid_select = " GROUP_CONCAT( concat( kc.display_name, '(', ".$tmp_age_calc_child." , ')'  ) as children , ";
-     		
-     		 $tmp_age_calc_child = "ifnull (  ((date_format($age_cutoff_date,'%Y') - date_format(kc.birth_date,'%Y')) - (date_format($age_cutoff_date,'00-%m-%d') < date_format(kc.birth_date,'00-%m-%d'))), 'no age' )";
-    	
-    		//$tmp_age_sql_child = " GROUP_CONCAT( ".$tmp_age_calc_child." )   AS children_age,  ";
-    		
-    		
-    		// $tmp_age_calc_child
-     		$kid_select = " GROUP_CONCAT( concat( kc.display_name, '(', ".$tmp_age_calc_child." , ') '  )) as children , ";
-     		
-     		$outer_select = " t1.* , group_concat( distinct phone_a.phone )  as adult_a_phone, group_concat( distinct phone_b.phone)  as spouse_b_phone, email_a.email as adult_a_email, email_b.email as spouse_b_email,
-     		 phone_hh.phone as household_phone, address_a.street_address, address_a.supplemental_address_1, address_a.city, state_a.abbreviation as state_abbreviation,  address_a.postal_code, ".$kid_select.$tmp_age_sql_child."
-     		 ".$tmp_age_sql_a.", ".$tmp_age_sql_b."  ";
-	}
-	
-	$from  = $this->from( );
- 	$where = $this->where( $includeContactIDs ) ;
+        $tmp = $yyyy."-".$mm."-".$dd ;
+        $age_cutoff_date =  "'".$tmp."'";
+      }
+      else {
+        $age_cutoff_date = "now()";
+      }
 
-	// GROUP_CONCAT( kc.display_name ) as children
-	$kid_join_sql = "";
-	$parent_child_rel_id = "1";
+      $tmp_age_calc_a = "((date_format($age_cutoff_date,'%Y') - date_format(con_a.birth_date,'%Y')) - (date_format($age_cutoff_date,'00-%m-%d') < date_format(con_a.birth_date,'00-%m-%d')))";
+      $tmp_age_sql_a = " ".$tmp_age_calc_a."  AS adult_a_age ";
+      $tmp_age_calc_b = "((date_format($age_cutoff_date,'%Y') - date_format(t1.spouse_b_birth_date,'%Y')) - (date_format($age_cutoff_date,'00-%m-%d') < date_format(t1.spouse_b_birth_date,'00-%m-%d')))";
+      $tmp_age_sql_b = " ".$tmp_age_calc_b."  AS adult_b_age ";
+
+      $select = " ifnull( sp.spouse_a_sort_name, contact_a.sort_name )  as sort_name  ,  ifnull( sp.spouse_a_id, contact_a.id )  as contact_id,
+          ifnull(sp.spouse_a_display_name, contact_a.display_name) as adult_a_display_name,
+          hh.sort_name as household_sort_name, hh.id as household_id,
+          sp.spouse_b_sort_name as spouse_b_sort_name,
+          sp.spouse_b_display_name as spouse_b_display_name,
+          sp.spouse_b_birth_date as spouse_b_birth_date,
+          sp.spouse_b_id as spouse_b_id ";
+
+      if (count($this->_formValues['membership_type_of_contact']) > 0 || count($this->_formValues['membership_org_of_contact']) > 0) {
+        $select =  $select." ,  group_concat(distinct memberships_a.join_date) as mem_join_date, group_concat(distinct mt.name ) as mem_type_name ";
+      }
+        
+      /* $outer_select = " t1.hh_contact_id , t1.household_sort_name, t1.contact_id, t1.sort_name, t1.spouse_a_sort_name, t1.spouse_b_sort_name,
+        t1.adult_a_display_name,  t1.spouse_b_display_name  ";  */
+
+      /*
+       $max_kids = 0 ;
+       $kid_select = "";
+       for ($kid=1; $kid<= $max_kids; $kid++) {
+           $kid_select = $kid_select." kc".$kid.".display_name as kid".$kid."  , ";
+       }
+      */
+
+      // $kid_select = " GROUP_CONCAT( concat( kc.display_name, '(', ".$tmp_age_calc_child." , ')'  ) as children , ";
+
+      $tmp_age_calc_child = "ifnull (  ((date_format($age_cutoff_date,'%Y') - date_format(kc.birth_date,'%Y')) - (date_format($age_cutoff_date,'00-%m-%d') < date_format(kc.birth_date,'00-%m-%d'))), 'no age' )";
+
+      // $tmp_age_sql_child = " GROUP_CONCAT( ".$tmp_age_calc_child." )   AS children_age,  ";
+
+      $kid_select = " GROUP_CONCAT( concat( kc.display_name, '(', ".$tmp_age_calc_child." , ') '  )) as children , ";
+     		
+      $outer_select = " t1.* , group_concat( distinct phone_a.phone )  as adult_a_phone, group_concat( distinct phone_b.phone)  as spouse_b_phone, email_a.email as adult_a_email, email_b.email as spouse_b_email,
+       phone_hh.phone as household_phone, address_a.street_address, address_a.supplemental_address_1, address_a.city, state_a.abbreviation as state_abbreviation,  address_a.postal_code, ".$kid_select.$tmp_age_sql_child."
+       ".$tmp_age_sql_a.", ".$tmp_age_sql_b."  ";
+    }
+    
+    $from  = $this->from();
+    $where = $this->where($includeContactIDs);
+
+    // GROUP_CONCAT( kc.display_name ) as children
+    $kid_join_sql = "";
+    $parent_child_rel_id = "1";
+    
+    $kid_join_sql = " LEFT JOIN civicrm_relationship kr ON t1.contact_id = kr.contact_id_b AND kr.is_active = 1 AND kr.relationship_type_id = ".$parent_child_rel_id." LEFT JOIN civicrm_contact kc ON kr.contact_id_a = kc.id AND kc.is_deleted <> 1 AND kc.is_deceased <> 1 ";
 	
-		$kid_join_sql = " LEFT JOIN civicrm_relationship kr ON t1.contact_id = kr.contact_id_b AND kr.is_active = 1 AND kr.relationship_type_id = ".$parent_child_rel_id." LEFT JOIN civicrm_contact kc ON kr.contact_id_a = kc.id AND kc.is_deleted <> 1 AND kc.is_deceased <> 1 ";
-	
-	// phone_type_id = 2  ==> mobile phone.
-	
-        $sql = "
+    // phone_type_id = 2  ==> mobile phone.
+
+    $sql = "
 SELECT ".$outer_select." FROM ( SELECT $select
 FROM  $from
 WHERE $where
