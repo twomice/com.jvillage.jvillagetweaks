@@ -254,29 +254,30 @@ LEFT JOIN civicrm_address address_a ON t1.contact_id = address_a.contact_id AND 
 LEFT JOIN civicrm_state_province state_a ON address_a.state_province_id = state_a.id ".$kid_join_sql."
  group by t1.contact_id";
 
+    // , ifnull( spouseA.id,  contact_a.id )
+    //order by month(birth_date), oc_day";
 
-// , ifnull( spouseA.id,  contact_a.id )
-//order by month(birth_date), oc_day";
-	
-	//for only contact ids ignore order.
-      if ( !$onlyIDs ) {
-          // Define ORDER BY for query in $sort, with default value
-          if ( ! empty( $sort ) ) {
-              if ( is_string( $sort ) ) {
-                  $sql .= " ORDER BY $sort ";
-              } else {
-                  $sql .= " ORDER BY " . trim( $sort->orderBy() );
-              }
-          } else {
-              //$sql .=   "ORDER BY month(rel.start_date), day(rel.start_date)";
-          }
-      }
-
-  	if ( $rowcount > 0 && $offset >= 0 ) {
-            $sql .= " LIMIT $offset, $rowcount ";
+    // For only contact ids ignore order.
+    if ( !$onlyIDs ) {
+      // Define ORDER BY for query in $sort, with default value
+      if (! empty($sort)) {
+        if (is_string($sort)) {
+          $sql .= " ORDER BY $sort ";
         }
+        else {
+          $sql .= " ORDER BY " . trim( $sort->orderBy() );
+        }
+      }
+      else {
+        //$sql .=   "ORDER BY month(rel.start_date), day(rel.start_date)";
+      }
+    }
 
-        return $sql;
+    if ( $rowcount > 0 && $offset >= 0 && ! $onlyIDs) {
+      $sql .= " LIMIT $offset, $rowcount ";
+    }
+
+    return $sql;
   }
 
   function from(){
