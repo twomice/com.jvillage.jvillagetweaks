@@ -26,27 +26,33 @@ class CRM_Jmanage_Utils_Check_MailingsPending {
       );
     }
     elseif ($dao->delta < 900) {
+      $delta = round($dao->delta/60);
+
       $messages[] = new CRM_Utils_Check_Message(
         'jvillagetweaks_mailingspending',
-        ts('Mailings have been waiting to be processed for the past %1 minutes.', array(1 => ($dao->delta/60))),
+        ts('Mailings have been waiting to be processed for the past %1 minutes.', array(1 => $delta)),
         ts('Mailings pending'),
         \Psr\Log\LogLevel::INFO,
         'fa-flag'
       );
     }
     elseif ($dao->delta < 1800) {
+      $delta = round($dao->delta/60);
+
       $messages[] = new CRM_Utils_Check_Message(
         'jvillagetweaks_mailingspending',
-        ts('Mailings have been waiting to be processed for the past %1 minutes.', array(1 => ($dao->delta/60))),
+        ts('Mailings have been waiting to be processed for the past %1 minutes.', array(1 => $delta)),
         ts('Mailings pending'),
         \Psr\Log\LogLevel::WARNING,
         'fa-flag'
       );
     }
     else {
+      $delta = round($dao->delta/60);
+
       $messages[] = new CRM_Utils_Check_Message(
         'jvillagetweaks_mailingspending',
-        ts('Mailings have been waiting to be processed for the past %1 minutes.', array(1 => ($dao->delta/60))),
+        ts('Mailings have been waiting to be processed for the past %1 minutes.', array(1 => $delta)),
         ts('Mailings OK'),
         \Psr\Log\LogLevel::CRITICAL,
         'fa-flag'
