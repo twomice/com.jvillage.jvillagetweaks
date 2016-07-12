@@ -1,10 +1,9 @@
 <?php
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.4                                                |
+ | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2013                                |
+ | Copyright CiviCRM LLC (c) 2004-2016                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,43 +23,47 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2013
- * $Id$
- *
+ * @copyright CiviCRM LLC (c) 2004-2016
  */
 
-/*
- * @see http://wiki.civicrm.org/confluence/display/CRM/CiviAccounts+Specifications+-++Batches#CiviAccountsSpecifications-Batches-%C2%A0Overviewofimplementation
+/**
+ * @link http://wiki.civicrm.org/confluence/display/CRM/CiviAccounts+Specifications+-++Batches#CiviAccountsSpecifications-Batches-%C2%A0Overviewofimplementation
  */
-
 class CRM_Financial_BAO_ExportFormat_CSVACCOUNTEDGE extends CRM_Financial_BAO_ExportFormat {
 
-  // For this phase, we always output these records too so that there isn't data referenced in the journal entries that isn't defined anywhere.
-  // Possibly in the future this could be selected by the user.
+  /**
+   * For this phase, we always output these records too so that there isn't data
+   * referenced in the journal entries that isn't defined anywhere.
+   *
+   * Possibly in the future this could be selected by the user.
+   */
   public static $complementaryTables = array(
     'ACCNT',
     'CUST',
   );
 
   /**
-   * class constructor
+   * Class constructor.
    */
-  function __construct() {
+  public function __construct() {
     parent::__construct();
   }
 
-  function export($exportParams) {
+  /**
+   * @param array $exportParams
+   */
+  public function export($exportParams) {
     $export = parent::export($exportParams);
 
-    // Save the file in the public directory
+    // Save the file in the public directory.
     $fileName = self::putFile($export);
 
-    foreach ( self::$complementaryTables as $rct ) {
+    foreach (self::$complementaryTables as $rct) {
       $func = "export{$rct}";
       $this->$func();
     }
@@ -71,29 +74,28 @@ class CRM_Financial_BAO_ExportFormat_CSVACCOUNTEDGE extends CRM_Financial_BAO_Ex
     $this->output($fileName);
   }
 
-  function generateExportQuery($batchId) {
-
-   $do_group_by = true; 
+  /**
+   * @param int $batchId
+   *
+   * @return Object
+   */
+  public function generateExportQuery($batchId) {
+    $do_group_by = true; 
  
-   $sql_credit_account_number = "CASE
+    $sql_credit_account_number = "CASE
          WHEN LENGTH( fa_from.accounting_code)  > 0 
          THEN fa_from.accounting_code
          ELSE fac.accounting_code
       END";
 
-   if( $do_group_by){
-      $group_by_sql = " GROUP BY date_format( ft.trxn_date, '%c/%e/%Y' ),   fa_to.accounting_code, $sql_credit_account_number "; 
-
-      $group_by_select = " sum( ft.total_amount )  AS debit_total_amount, "; 
-
-   }else{
-        $group_by_sql = ""; 
-
-        $group_by_select = "  ft.total_amount AS debit_total_amount, "; 
-
-
+    if ($do_group_by) {
+      $group_by_sql = " GROUP BY date_format( ft.trxn_date, '%c/%e/%Y' ), fa_to.accounting_code, $sql_credit_account_number ";
+      $group_by_select = " sum( ft.total_amount )  AS debit_total_amount, ";
     }
-
+    else {
+      $group_by_sql = "";
+      $group_by_select = "  ft.total_amount AS debit_total_amount, ";
+    }
 
     $sql = "SELECT
       ft.id as financial_trxn_id,
@@ -142,15 +144,20 @@ class CRM_Financial_BAO_ExportFormat_CSVACCOUNTEDGE extends CRM_Financial_BAO_Ex
       $group_by_sql ";
 
     $params = array(1 => array($batchId, 'String'));
-    $dao = CRM_Core_DAO::executeQuery( $sql, $params );
+    $dao = CRM_Core_DAO::executeQuery($sql, $params);
 
     return $dao;
   }
 
-  function putFile($export) {
+  /**
+   * @param $export
+   *
+   * @return string
+   */
+  public function putFile($export) {
     $config = CRM_Core_Config::singleton();
-    $fileName = $config->uploadDir.'Financial_Transactions_'.$this->_batchIds.'_'.date('YmdHis').'.'.$this->getFileExtension();
-    $this->_downloadFile[] = $config->customFileUploadDir.CRM_Utils_File::cleanFileName(basename($fileName));
+    $fileName = $config->uploadDir . 'Financial_Transactions_' . $this->_batchIds . '_' . date('YmdHis') . '.' . $this->getFileExtension();
+    $this->_downloadFile[] = $config->customFileUploadDir . CRM_Utils_File::cleanFileName(basename($fileName));
     $out = fopen($fileName, 'w');
     fputcsv($out, $export['headers']);
     unset($export['headers']);
@@ -164,12 +171,12 @@ class CRM_Financial_BAO_ExportFormat_CSVACCOUNTEDGE extends CRM_Financial_BAO_Ex
   }
 
   /**
-   * Format table headers
+   * Format table headers.
    *
    * @param array $values
    * @return array
    */
-  function formatHeaders($values) {
+  public function formatHeaders($values) {
     $arrayKeys = array_keys($values);
     $headers = '';
     if (!empty($arrayKeys)) {
@@ -181,12 +188,11 @@ class CRM_Financial_BAO_ExportFormat_CSVACCOUNTEDGE extends CRM_Financial_BAO_Ex
   }
 
   /**
-   * Generate CSV array for export
+   * Generate CSV array for export.
    *
    * @param array $export
-   *
    */
-  function makeCSV($export) {
+  public function makeExport($export) {
     foreach ($export as $batchId => $dao) {
       $financialItems = array();
       $this->_batchIds = $batchId;
@@ -207,10 +213,7 @@ class CRM_Financial_BAO_ExportFormat_CSVACCOUNTEDGE extends CRM_Financial_BAO_Ex
 
       // Get batch name 
         $batch_title_tmp = $dao->batch_title;
-        
         $debitAccount =  $dao->to_account_code; 
-
-
         $date_to_export = $dao->trxn_date;
         
         $debit_amount_to_export = $dao->debit_total_amount;
@@ -258,8 +261,6 @@ class CRM_Financial_BAO_ExportFormat_CSVACCOUNTEDGE extends CRM_Financial_BAO_Ex
         
         }
 
-
-
 /*
         $financialItems[] = array(
           'Transaction Date' => $dao->trxn_date,
@@ -287,16 +288,20 @@ class CRM_Financial_BAO_ExportFormat_CSVACCOUNTEDGE extends CRM_Financial_BAO_Ex
     parent::initiateDownload();
   }
 
-  function getFileExtension() {
+  /**
+   * @return string
+   */
+  public function getFileExtension() {
     return 'csv';
   }
 
-  function exportACCNT() {
+  public function exportACCNT() {
   }
 
-  function exportCUST() {
+  public function exportCUST() {
   }
 
-  function exportTRANS() {
+  public function exportTRANS() {
   }
+
 }

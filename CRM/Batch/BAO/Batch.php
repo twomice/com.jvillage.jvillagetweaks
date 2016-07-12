@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2016                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2016
  */
 
 /**
@@ -601,41 +601,10 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
     else {
       CRM_Core_Error::fatal("Could not locate exporter: $exporterClass");
     }
-    switch (self::$_exportFormat) {
-      case 'CSV':
-        foreach ($batchIds as $batchId) {
-          $export[$batchId] = $exporter->generateExportQuery($batchId);
-        }
-        $exporter->makeCSV($export);
-        break;
-
-      case 'IIF':
-        foreach ($batchIds as $batchId) {
-          $export[$batchId] = $exporter->generateExportQuery($batchId);
-        }
-        $exporter->makeIIF($export);
-        break;
-
-     case 'CSVACCOUNTEDGE':
-        foreach ($batchIds as $batchId) {
-          $export[$batchId] = $exporter->generateExportQuery($batchId);
-        }
-        $exporter->makeCSV($export);
-        break;
-     case 'IIFDEPOSIT':
-        foreach ($batchIds as $batchId) {
-          $export[$batchId] = $exporter->generateExportQuery($batchId);
-        }
-        $exporter->makeIIF($export);
-        break;
-     case 'IIFJOURNALACCTNAME':
-        foreach ($batchIds as $batchId) {
-          $export[$batchId] = $exporter->generateExportQuery($batchId);
-        }
-        $exporter->makeIIF($export);
-        break;
-
+    foreach ($batchIds as $batchId) {
+      $export[$batchId] = $exporter->generateExportQuery($batchId);
     }
+    $exporter->makeExport($export);
   }
 
   /**
