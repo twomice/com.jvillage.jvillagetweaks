@@ -22,6 +22,9 @@ function jvillagetweaks_civicrm_config(&$config) {
   // packages/kcfinder/integration/civicrm.php
   $config->imageUploadURL = "https://$host/sites/$host/files/";
   $config->imageUploadDir = "$root/sites/$host/files/";
+
+  // redmine #862, #931 and others: custom CSS for admin interface.
+  CRM_Core_Resources::singleton()->addStyleFile('com.jvillage.jvillagetweaks', 'css/admin-tweaks.css');
 }
 
 /**
@@ -155,8 +158,6 @@ function jvillagetweaks_civicrm_buildForm($formName, &$form) {
   }
   elseif ($formName == 'CRM_Member_Form_MembershipType') {
     // redmine #862, allow to edit relationship types of existing memberships.
-    CRM_Core_Resources::singleton()->addStyleFile('com.jvillage.jvillagetweaks', 'css/admin-tweaks.css');
-
     if ($form->elementExists('relationship_type_id')) {
       $e = $form->getElement('relationship_type_id');
       $e->unfreeze();
