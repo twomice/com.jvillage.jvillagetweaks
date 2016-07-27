@@ -7,3 +7,7 @@
 #crm-container .crm-membership-type-form-block tr.crm-membership-type-form-block-relationship_type_id > td > .status.message {
   display: none;
 }
+
+#crm-container #tab-mailing #cke_1_contents {
+  min-height: 400px;
+}
