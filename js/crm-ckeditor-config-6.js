@@ -27,6 +27,11 @@ CKEDITOR.editorConfig = function( config ) {
 
 	config.skin = 'moono';
 
+        // Do not escape & to &amp, breaks URLs.
+        config.entities = false;
+        config.basicEntities = false;
+        config.htmlEncodeOutput = false;
+
 	config.extraPlugins = 'justify,find,colordialog,colorbutton,font';
 };
 console.log('TEST 6');
