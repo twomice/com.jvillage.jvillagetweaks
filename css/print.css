@@ -1,0 +1,10 @@
+/**
+ * Advanced search
+ */
+.crm-container .crm-search-form .crm-advanced_search_form-accordion {
+  display: none;
+}
+
+.crm-container .crm-search-form table tr td:last-child > .crm-hover-button {
+  display: none;
+}
