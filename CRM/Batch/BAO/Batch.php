@@ -332,7 +332,7 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
         $activityParams = array('source_record_id' => $object->id, 'activity_type_id' => $aid);
         $exportActivity = CRM_Activity_BAO_Activity::retrieve($activityParams, $val);
 
-        // [ML] JVILLAGE PATCH .. why? safeguard against missing data?
+        // [ML] JVILLAGE PATCH .. safeguard against old broken data.
         if (! empty($exportActivity->id)) {
           $fid = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_EntityFile', $exportActivity->id, 'file_id', 'entity_id');
           $tokens = array_merge(array('eid' => $exportActivity->id, 'fid' => $fid), $tokens);
