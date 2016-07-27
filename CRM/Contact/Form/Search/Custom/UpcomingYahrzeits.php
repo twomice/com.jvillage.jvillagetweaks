@@ -236,14 +236,10 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
     $extended_date_table = "";
     $outCustomColumnNames = array();
 
-    $error_msg = getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_date_table, $outCustomColumnNames ) ;
+    getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_date_table, $outCustomColumnNames ) ;
 
     $extended_birth_date  =  $outCustomColumnNames[$custom_field_birthdate_sunset_label];
     $extended_death_date  =  $outCustomColumnNames[$custom_field_deathdate_sunset_label];
-
-    if (! empty($error_msg)) {
-      CRM_Core_Error::fatal("Configuration Problem: " . $error_msg);
-    }
 
     // Get SQL table info for table with Hebrew name.
     $custom_religious_field_group_label = "Religious";
@@ -251,13 +247,9 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
     $customFieldLabels = array($custom_hebrewname_field_label );
     $extended_religious_table = "";
     $outCustomColumnNames = array();
-    $error_msg = getCustomTableFieldNames($custom_religious_field_group_label , $customFieldLabels, $extended_religious_table, $outCustomColumnNames);
+    getCustomTableFieldNames($custom_religious_field_group_label , $customFieldLabels, $extended_religious_table, $outCustomColumnNames);
 
     $extended_hebrewname  =  $outCustomColumnNames[$custom_hebrewname_field_label];
-
-    if (! empty($error_msg)) {
-      CRM_Core_Error::fatal("Configuration Problem: " . $error_msg);
-    }
 
     // Get SQL table info for plaque table.
     $custom_plaque_field_group_label = "Memorial Plaque Info";
@@ -266,15 +258,10 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
     $customFieldLabels = array($custom_plaque_location_field_label, $custom_has_plaque_field_label);
     $extended_plaque_table = "";
     $outCustomColumnNames = array();
-    $error_msg = getCustomTableFieldNames($custom_plaque_field_group_label , $customFieldLabels, $extended_plaque_table, $outCustomColumnNames);
+    getCustomTableFieldNames($custom_plaque_field_group_label , $customFieldLabels, $extended_plaque_table, $outCustomColumnNames);
 
     $extended_plaque_location = $outCustomColumnNames[$custom_plaque_location_field_label];
     $extended_has_plaque = $outCustomColumnNames[$custom_has_plaque_field_label];
-
-    if ($error_msg <> '') {
-      print "<br><h2>Configuration Problem: ".$error_msg."</h2>" ;
-      return '';
-    }
 
     /******************************************************************************/
     // Get data for contacts
@@ -398,7 +385,7 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
     $customFieldLabels = array($custom_hebrewname_field_label );
     $extended_religious_table = "";
     $outCustomColumnNames = array();
-    $error_msg = getCustomTableFieldNames($custom_religious_field_group_label , $customFieldLabels, $extended_religious_table, $outCustomColumnNames ) ;
+    getCustomTableFieldNames($custom_religious_field_group_label , $customFieldLabels, $extended_religious_table, $outCustomColumnNames ) ;
 
     $extended_hebrewname  =  $outCustomColumnNames[$custom_hebrewname_field_label];
 
@@ -409,7 +396,7 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
     $customFieldLabels = array($custom_plaque_location_field_label, $custom_has_plaque_field_label );
     $extended_plaque_table = "";
     $outCustomColumnNames = array();
-    $error_msg = getCustomTableFieldNames($custom_plaque_field_group_label , $customFieldLabels, $extended_plaque_table, $outCustomColumnNames ) ;
+    getCustomTableFieldNames($custom_plaque_field_group_label , $customFieldLabels, $extended_plaque_table, $outCustomColumnNames ) ;
 
     $extended_plaque_location  =  $outCustomColumnNames[$custom_plaque_location_field_label];
     $extended_has_plaque =  $outCustomColumnNames[$custom_has_plaque_field_label];
@@ -463,7 +450,7 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
     $customFieldLabels = array($custom_plaque_location_field_label, $custom_has_plaque_field_label);
     $extended_plaque_table = "";
     $outCustomColumnNames = array();
-    $error_msg = getCustomTableFieldNames($custom_plaque_field_group_label , $customFieldLabels, $extended_plaque_table, $outCustomColumnNames);
+    getCustomTableFieldNames($custom_plaque_field_group_label , $customFieldLabels, $extended_plaque_table, $outCustomColumnNames);
 
     $extended_plaque_location  =  $outCustomColumnNames[$custom_plaque_location_field_label];
     $extended_has_plaque =  $outCustomColumnNames[$custom_has_plaque_field_label];

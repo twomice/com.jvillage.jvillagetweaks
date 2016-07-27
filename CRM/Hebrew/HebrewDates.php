@@ -314,17 +314,8 @@ $customFieldLabels[] = $custom_fields_candle_offset ;
 
 $outCustomColumnNames = array();
 
+getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $sql_table_name, $outCustomColumnNames);
 
-$error_msg = getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $sql_table_name, $outCustomColumnNames ) ;
-
-
-
-if(strlen( $error_msg) > 0){
-	print "<br>Configuration error: ".$error_msg;
-	return "";
-
-
-}
 $sql_zenith_field  =  $outCustomColumnNames[$custom_field_zenith_label];
 $sql_minutes_offset_field = $outCustomColumnNames[$custom_field_minutes_offset];
 $sql_minutes_candle_offset = $outCustomColumnNames[$custom_fields_candle_offset];
@@ -530,21 +521,16 @@ $customFieldLabels = array($custom_field_birthdate_sunset_label   , $custom_fiel
 $extended_date_table = "";
 $outCustomColumnNames = array();
 
+  try {
+    getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_date_table, $outCustomColumnNames ) ;
 
-$error_msg = getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_date_table, $outCustomColumnNames ) ;
-
-$extended_birth_date  =  $outCustomColumnNames[$custom_field_birthdate_sunset_label];
-$extended_death_date  =  $outCustomColumnNames[$custom_field_deathdate_sunset_label];
-    
-  
-       
-//list($error_msg, $extended_date_table,  $extended_birth_date , $extended_death_date) = getCustomTableFieldNames();
-
-if($error_msg <> ''){
-    //$screen->assign("hebrew_date_of_birth", $error_msg );
-    $rtn_data["hebrew_date_of_birth"] = $error_msg;  
+    $extended_birth_date  =  $outCustomColumnNames[$custom_field_birthdate_sunset_label];
+    $extended_death_date  =  $outCustomColumnNames[$custom_field_deathdate_sunset_label];
+  }
+  catch (Exception $e) {
+    $rtn_data["hebrew_date_of_birth"] = $e->getMessage();
     return $rtn_data;
-}
+  }
 
 // fetch the details about the individual.
         $query = "
@@ -744,19 +730,11 @@ $extended_date_table = "";
 $outCustomColumnNames = array();
 
 
-$error_msg = getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_date_table, $outCustomColumnNames ) ;
+getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_date_table, $outCustomColumnNames);
 
 $extended_birth_date  =  $outCustomColumnNames[$custom_field_birthdate_sunset_label];
 $extended_death_date  =  $outCustomColumnNames[$custom_field_deathdate_sunset_label];
  
-// list($error_msg, $extended_date_table,  $extended_birth_date , $extended_death_date) = getCustomTableFieldNames();
-
-if($error_msg <> ''){
-
-  return ;
-}
-
-	
 	$i = 1;
         foreach ( $contactIDs as $cid ) {
           $cid_list = $cid_list.$cid;

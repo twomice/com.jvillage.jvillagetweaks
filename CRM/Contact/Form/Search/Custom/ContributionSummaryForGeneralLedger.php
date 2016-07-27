@@ -281,7 +281,7 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
       $outCustomColumnNames = array();
 
       require_once('utils/util_custom_fields.php');
-      $error_msg = getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
+      getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
 
       $deposit_sql_name  =  $outCustomColumnNames[$custom_field_deposit_label];
       $batch_sql_name  =  $outCustomColumnNames[$custom_field_batch_label];
@@ -556,7 +556,7 @@ $extended_contrib_table = "";
 $outCustomColumnNames = array();
 
 require_once('utils/util_custom_fields.php');
-$error_msg = getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
+getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
 
     $tmp_first_contrib = " select contrib.id , contrib.contact_id ,contrib.source, contrib.currency,
    contrib.contribution_status_id,   contrib.contribution_recur_id , contrib.receive_date, contrib.total_amount, contrib.is_test
@@ -594,7 +594,7 @@ $error_msg = getCustomTableFieldNames($custom_field_group_label, $customFieldLab
     $outCustomColumnNames = array();
 
     require_once('utils/util_custom_fields.php');
-    $error_msg = getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
+    getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
 
     $tmp_from =  "
         civicrm_line_item li
@@ -627,7 +627,7 @@ $extended_contrib_table = "";
 $outCustomColumnNames = array();
 
 require_once('utils/util_custom_fields.php');
-$error_msg = getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
+getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
 
 
     /*
@@ -694,7 +694,7 @@ $extended_contrib_table = "";
 $outCustomColumnNames = array();
 
 require_once('utils/util_custom_fields.php');
-$error_msg = getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
+getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
 
 $deposit_sql_name  =  $outCustomColumnNames[$custom_field_deposit_label];
 $batch_sql_name  =  $outCustomColumnNames[$custom_field_batch_label];
