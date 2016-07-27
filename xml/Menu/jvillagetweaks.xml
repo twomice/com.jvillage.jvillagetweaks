@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<menu>
+  <item>
+    <path>civicrm/admin/settings/jmanage</path>
+    <title>Jmanage Settings</title>
+    <page_callback>CRM_Jmanage_Admin_Form_Settings</page_callback>
+    <adminGroup>System Settings</adminGroup>
+    <access_arguments>administer CiviCRM</access_arguments>
+  </item>
+</menu>
