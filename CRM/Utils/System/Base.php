@@ -693,7 +693,7 @@ $filesURL = $baseURL . $t . '/civicrm/';
   public function getTimeZoneOffset() {
     $timezone = $this->getTimeZoneString();
     if ($timezone) {
-      if ($timezone == 'UTC') {
+      if ($timezone == 'UTC' || $timezone == 'Etc/UTC') {
         // CRM-17072 Let's short-circuit all the zero handling & return it here!
         return '+00:00';
       }
