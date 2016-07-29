@@ -5,54 +5,42 @@ require_once 'CRM/Contact/Form/Search/Custom/Base.php';
 class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_Search_Custom_Base implements CRM_Contact_Form_Search_Interface {
   protected $_formValues;
 
-  function __construct( &$formValues ) {
-        parent::__construct( $formValues );
+  function __construct(&$formValues) {
+    parent::__construct($formValues);
 
-       // $this->_eventID = CRM_Utils_Array::value('event_id', $this->_formValues);
+    // $this->_eventID = CRM_Utils_Array::value('event_id', $this->_formValues);
 
+    $tmp_option_value_raw =   $this->_formValues['priceset_option_id'] ;
+    // $form_values = split('_' , $tmp_option_value_raw );
 
-  $tmp_option_value_raw =   $this->_formValues['priceset_option_id'] ;
-  //$form_values = split('_' , $tmp_option_value_raw );
+    $this->_userChoices = $tmp_option_value_raw;
 
-  $this->_userChoices = $tmp_option_value_raw;
+    $tmp_all_events = array();
+    $tmp_all_priceset_options = array();
 
-  $tmp_all_events = array();
-  $tmp_all_priceset_options = array();
-
-  if (is_array($this->_userChoices)) {
-    foreach ($this->_userChoices as $dontCare => $curUserChoice ) {
-         $tmp_cur = split('_' ,$curUserChoice );
-         $tmp_all_events[] = $tmp_cur[0];
-         $tmp_all_priceset_options[] = $tmp_cur[1];
+    if (is_array($this->_userChoices)) {
+      foreach ($this->_userChoices as $dontCare => $curUserChoice) {
+        $tmp_cur = split('_' ,$curUserChoice);
+        $tmp_all_events[] = $tmp_cur[0];
+        $tmp_all_priceset_options[] = $tmp_cur[1];
+      }
     }
+
+    $this->_allChosenEvents  = $tmp_all_events ;
+    $this->_allChosenPricesetOptions = $tmp_all_priceset_options;
+
+    // $tmpEventId = $form_values[0];
+    // $tmp_priceset_id = $form_values[1];
+
+    // $this->_eventID = $tmpEventId;
+    // $this->_pricesetOptionId = $tmp_priceset_id;
+
+    //print "<hr><br>Current event id: ".$this->_eventID;
+
+    $this->setColumns();
   }
 
-
-  $this->_allChosenEvents  = $tmp_all_events ;
-  $this->_allChosenPricesetOptions = $tmp_all_priceset_options;
-
-
-  //print "<hr><br>User choice original array: ";
-  //print_r($this->_userChoices);
-
-  //print "<br>all events: ";
-  //print_r($tmp_all_events);
-
-  //print "<br>all priceset options: ";
-  //print_r($tmp_all_priceset_options);
-
-  //$tmpEventId = $form_values[0];
-  //$tmp_priceset_id = $form_values[1];
-
-  //$this->_eventID = $tmpEventId;
-  // $this->_pricesetOptionId = $tmp_priceset_id ;
-
-  //print "<hr><br>Current event id: ".$this->_eventID;
-
-        $this->setColumns( );
-  }
-
-  function __destruct( ) {
+  function __destruct() {
     /*
     if ( $this->_eventID ) {
       $sql = "DROP TEMPORARY TABLE {$this->_tableName}";
@@ -62,95 +50,78 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
   }
 
   function buildForm(&$form) {
-  /*   Create a select list of the various price set options */
+    // Create a select list of the various price set options
 
-        // $tmpPriceSetOptions[$fieldName] = ' test' ;
-        // print "<br>Options array for select list: ";
-        // print_r($tmpPriceSetOptions);
+    /**
+     * You can define a custom title for the search form
+     */
+    $this->setTitle('Prepare Statements');
 
-        /**
-         * You can define a custom title for the search form
-         */
-         $this->setTitle('Prepare Statements');
+    /**
+     * if you are using the standard template, this array tells the template what elements
+     * are part of the search criteria
+     */
+    // $form->assign('elements', array('priceset_option_id'));
 
-         require_once ('utils/Entitlement.php');
-  $entitlement = new Entitlement();
+    require_once 'utils/util_money.php';
+    if (pogstone_is_user_authorized('access CiviContribute') == false) {
+      $this->setTitle('Not Authorized');
+      return;
+    }
 
-         /**
-         * if you are using the standard template, this array tells the template what elements
-         * are part of the search criteria
-         */
-        // $form->assign( 'elements', array(   'priceset_option_id'  ) );
+    require_once('utils/CustomSearchTools.php');
+    $searchTools = new CustomSearchTools();
 
+    // $group_ids = $searchTools->getRegularGroupsforSelectList();
+    $group_ids = CRM_Core_PseudoConstant::group();
 
-        require_once 'utils/util_money.php';
-       if ( pogstone_is_user_authorized('access CiviContribute') == false ){
-           $this->setTitle('Not Authorized');
-           return;
+    $mem_ids = $searchTools->getMembershipsforSelectList();
+    $org_ids = $searchTools->getMembershipOrgsforSelectList();
 
-       }
+    $contrib_type_choices = array();
+    $accounting_code_choices = array();
 
-          require_once('utils/CustomSearchTools.php');
-  $searchTools = new CustomSearchTools();
-  // $group_ids = $searchTools->getRegularGroupsforSelectList();
-   $group_ids =   CRM_Core_PseudoConstant::group();
+    $contrib_type_sql = "";
 
+    $contrib_type_sql = "SELECT ct.id, ct.name, fa.accounting_code from civicrm_financial_type ct
+      LEFT JOIN civicrm_entity_financial_account efa
+             ON (ct.id = efa.entity_id AND efa.entity_table = 'civicrm_financial_type' AND efa.account_relationship = 1)
+      LEFT JOIN civicrm_financial_account fa
+             ON (efa.financial_account_id = fa.id)
+          WHERE ct.is_active = 1 order by name";
 
-         $mem_ids = $searchTools->getMembershipsforSelectList();
+    $contrib_dao = CRM_Core_DAO::executeQuery($contrib_type_sql);
 
-         $org_ids = $searchTools->getMembershipOrgsforSelectList();
+    while ($contrib_dao->fetch()) {
+      $cur_id = $contrib_dao->id;
+      $cur_name = $contrib_dao->name;
+      $accounting_code = $contrib_dao->accounting_code;
 
-         $contrib_type_choices = array( );
-  $accounting_code_choices = array( );
+      $pos_a = strpos($cur_name, 'adjustment-');
+      $pos_b = strpos($cur_name, 'prepayment-');
 
-  $contrib_type_sql = "";
+      if ($pos_a === false && $pos_b === false) {
+        if (strlen($accounting_code) > 0) {
+          $tmp_description = $cur_name." - ".$accounting_code;
+          $accounting_code_choices[$accounting_code] = $accounting_code;
+        }
+        else {
+          $tmp_description = $cur_name;
+        }
 
-   $contrib_type_sql = "Select ct.id, ct.name, fa.accounting_code from civicrm_financial_type ct
-     LEFT JOIN civicrm_entity_financial_account efa ON ct.id = efa.entity_id AND efa.entity_table = 'civicrm_financial_type'
-     AND efa.account_relationship = 1
-     LEFT JOIN civicrm_financial_account fa ON efa.financial_account_id = fa.id
-        where ct.is_active = 1 order by name";
+        $contrib_type_choices[$cur_id] = $tmp_description;
+      }
+    }
 
-  $contrib_dao = & CRM_Core_DAO::executeQuery( $contrib_type_sql, CRM_Core_DAO::$_nullArray );
+    $contrib_dao->free();
+    natcasesort ($accounting_code_choices);
 
-         while ($contrib_dao->fetch()){
-
-              $cur_id = $contrib_dao->id;
-              $cur_name = $contrib_dao->name;
-              $accounting_code = $contrib_dao->accounting_code;
-
-              $pos_a = strpos($cur_name, 'adjustment-');
-              $pos_b = strpos($cur_name, 'prepayment-');
-
-              if ($pos_a === false && $pos_b === false) {
-
-                if( strlen($accounting_code) > 0 ){
-                    $tmp_description = $cur_name." - ".$accounting_code;
-                    $accounting_code_choices[$accounting_code] = $accounting_code;
-                  }else{
-                     $tmp_description = $cur_name;
-                 }
-
-                  $contrib_type_choices[$cur_id] = $tmp_description;
-
-
-     }
-         }
-
-        $contrib_dao->free();
-
-         natcasesort ($accounting_code_choices);
-
-
-        if( $entitlement->isRunningCiviCRM_4_5()){
-
-              $select2style = array(
+    $select2style = array(
       'multiple' => TRUE,
       'style' => 'width: 100%; max-width: 60em;',
       'class' => 'crm-select2',
       'placeholder' => ts('- select -'),
     );
-    //
 
     $form->add('select', 'group_of_contact',
       ts('Contact is in the group'),
@@ -159,92 +130,66 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
       $select2style
     );
 
-   $form->add('select', 'membership_org_of_contact',
+    $form->add('select', 'membership_org_of_contact',
       ts('Contact has Membership In'),
       $org_ids,
       FALSE,
       $select2style
     );
 
-       $form->add('select', 'membership_type_of_contact',
+    $form->add('select', 'membership_type_of_contact',
       ts('Contact has the membership of type'),
       $mem_ids,
       FALSE,
       $select2style
     );
 
-    /*   $form->add('select', 'contrib_type', ts("Financial Type"), $contrib_type_choices, FALSE,
+    /*
+      $form->add('select', 'contrib_type', ts("Financial Type"), $contrib_type_choices, FALSE,
           array('id' => 'contrib_type', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-        );
+      );
 
-          $form->add('select', 'accounting_code', ts('Accounting Code'),  $accounting_code_choices, FALSE,
+      $form->add('select', 'accounting_code', ts('Accounting Code'),  $accounting_code_choices, FALSE,
           array('id' => 'accounting_code', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-        );
-        */
-          $form->add('select', 'contrib_type',
+      );
+    */
+
+    $form->add('select', 'contrib_type',
       ts('Financial Type'),
       $contrib_type_choices,
       FALSE,
       $select2style
     );
 
-      $form->add('select', 'accounting_code',
+    $form->add('select', 'accounting_code',
       ts('Accounting Code'),
       $accounting_code_choices,
       FALSE,
       $select2style
     );
 
+    $form->addDate('end_date', ts('Due By'), false, array( 'formatType' => 'custom'));
+    $form->add('text', 'num_days_overdue', ts('Number Days Overdue'));
 
+    $layout_choices = array();
 
-    }
-    else {
-      // version 4.4
+    // $layout_choices[''] = '  -- Select Layout -- ';
+    // $layout_choices['details'] = 'Details';
+    // $layout_choices['summarize_contact_contribution_type'] = 'Summarized by Contact, '.$fin_type_label;
+    $layout_choices['summarize_contact'] = 'Summarized by Contact (best for email)';
 
-       $form->add('select', 'group_of_contact', ts('Contact is in the group'), $group_ids, FALSE,
-          array('id' => 'group_of_contact', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-        );
+    $layout_choices['summarize_household'] = 'Summarized by Household (best for hard copy)';
+    //  $layout_choices['summarize_contribution_type'] = 'Summarized by '.$fin_type_label;
+    //  $layout_choices['summarize_accounting_code'] = 'Summarized by Accounting Code';
 
-       $form->add('select', 'membership_org_of_contact', ts('Contact has Membership In'), $org_ids, FALSE,
-          array('id' => 'membership_org_of_contact', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-        );
+    $form->add('select', 'layout_choice', ts('Layout Choice'), $layout_choices, false);
 
-     $form->add('select', 'membership_type_of_contact', ts('Contact has the membership of type'), $mem_ids, FALSE,
-          array('id' => 'membership_type_of_contact', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-        );
+    $comm_prefs = $searchTools->getCommunicationPreferencesForSelectList();
+    $comm_prefs_select = $form->add('select', 'comm_prefs', ts('Communication Preference'), $comm_prefs, false);
 
-         $form->add('select', 'contrib_type', ts("Financial Type"), $contrib_type_choices, FALSE,
-          array('id' => 'contrib_type', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-        );
+    $form->assign( 'elements', array('group_of_contact', 'membership_org_of_contact' , 'membership_type_of_contact' ,  'end_date' , 'num_days_overdue', 'contrib_type' ,  'date_selection', 'comm_prefs',  'layout_choice') );
 
-          $form->add('select', 'accounting_code', ts('Accounting Code'),  $accounting_code_choices, FALSE,
-          array('id' => 'accounting_code', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-        );
-     }
-
-
-     $form->addDate('end_date', ts('Due By'), false, array( 'formatType' => 'custom' ) );
-
-     $form->add ( 'text', 'num_days_overdue', ts('Number Days Overdue'));
-
-     $layout_choices = array();
-     // $layout_choices[''] = '  -- Select Layout -- ';
-     // $layout_choices['details'] = 'Details';
-     // $layout_choices['summarize_contact_contribution_type'] = 'Summarized by Contact, '.$fin_type_label;
-     $layout_choices['summarize_contact'] = 'Summarized by Contact (best for email)';
-
-     $layout_choices['summarize_household'] = 'Summarized by Household (best for hard copy)';
-     //  $layout_choices['summarize_contribution_type'] = 'Summarized by '.$fin_type_label;
-     //  $layout_choices['summarize_accounting_code'] = 'Summarized by Accounting Code';
-
-     $form->add('select', 'layout_choice', ts('Layout Choice'), $layout_choices, false);
-
-     $comm_prefs = $searchTools->getCommunicationPreferencesForSelectList();
-     $comm_prefs_select = $form->add  ('select', 'comm_prefs', ts('Communication Preference'), $comm_prefs, false);
-
-     $form->assign( 'elements', array( 'group_of_contact', 'membership_org_of_contact' , 'membership_type_of_contact' ,  'end_date' , 'num_days_overdue', 'contrib_type' ,  'date_selection', 'comm_prefs',  'layout_choice') );
-
-     //  $form->assign( 'elements', array( 'target_date') );
+    //  $form->assign('elements', array('target_date'));
   }
 
   function setColumns() {
@@ -254,9 +199,6 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
       $this->_columns = $columns_to_show;
       return ;
     }
-
-    require_once ('utils/Entitlement.php');
-    $entitlement = new Entitlement();
 
     $fin_type_label  = "Financial Type";
 
@@ -293,87 +235,68 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
   }
 
   function select($summary_section = false, $onlyIDs) {
-      $select = "";
-      $end_date_parm = CRM_Utils_Date::processDate( $this->_formValues['end_date'] );
+    $select = "";
+    $end_date_parm = CRM_Utils_Date::processDate( $this->_formValues['end_date'] );
 
-     $layout_choice = $this->_formValues['layout_choice'] ;
+    $layout_choice = $this->_formValues['layout_choice'] ;
 
-     //print "<br>End date: ".$end_date_parm ;
-     if(strlen( $end_date_parm ) > 0 ){
+    if (strlen($end_date_parm) > 0) {
+      $iyear = substr($end_date_parm, 0, 4);
+      $imonth = substr($end_date_parm , 4, 2);
+      $iday = substr($end_date_parm, 6, 2);
+      $end_date_parm = $iyear.'-'.$imonth.'-'.$iday;
+    }
 
-     $iyear = substr($end_date_parm, 0, 4);
-     $imonth = substr($end_date_parm , 4, 2);
-     $iday = substr($end_date_parm, 6, 2);
-     $end_date_parm = $iyear.'-'.$imonth.'-'.$iday;
+    // [receive_date_relative] => 0 [receive_date_from] => [receive_date_to]
+    // print_r( $this->_params );
+    $tmp_contrib_where = '';
+    $tmp_pledge_pay_where = '';
 
-     }
-
-   // print "<br>End date: ".$end_date_parm ;
-
-  //    [receive_date_relative] => 0 [receive_date_from] => [receive_date_to]
-   //   print_r( $this->_params );
-   $tmp_contrib_where = '';
-   $tmp_pledge_pay_where = '';
-
-   if (strlen($end_date_parm) > 0 ) {
+    if (strlen($end_date_parm) > 0) {
       $tmp_select_field = "'" . $end_date_parm . "'";
       $base_date = "'" . $end_date_parm . "'";
-   }
-   else {
+    }
+    else {
       $tmp_select_field = "DATE(now())";
       $base_date = "now()";
-   }
+    }
 
     $groupby = "";
 
-        $tmp_30_days = "if(   (datediff( date($base_date) ,date(expected_date)) >= 0  AND datediff(date($base_date) ,date(expected_date)) <= 30) , total_amount,  NULL)";
-      $tmp_60_days = "if(   (datediff( date($base_date) ,date(expected_date)) > 30 AND datediff(date($base_date) ,date(expected_date)) <= 60) , total_amount,  NULL)";
-      $tmp_90_days = "if(   (datediff( date($base_date) ,date(expected_date)) > 60 AND datediff(date($base_date) ,date(expected_date)) <= 90) , total_amount,  NULL)";
-      $tmp_91_days = "if(   (datediff( date($base_date) ,date(expected_date)) > 90)  , total_amount,  NULL)";
+    $tmp_30_days = "if(   (datediff( date($base_date) ,date(expected_date)) >= 0  AND datediff(date($base_date) ,date(expected_date)) <= 30) , total_amount,  NULL)";
+    $tmp_60_days = "if(   (datediff( date($base_date) ,date(expected_date)) > 30 AND datediff(date($base_date) ,date(expected_date)) <= 60) , total_amount,  NULL)";
+    $tmp_90_days = "if(   (datediff( date($base_date) ,date(expected_date)) > 60 AND datediff(date($base_date) ,date(expected_date)) <= 90) , total_amount,  NULL)";
+    $tmp_91_days = "if(   (datediff( date($base_date) ,date(expected_date)) > 90)  , total_amount,  NULL)";
 
+    require_once('utils/finance/FinancialCategory.php');
+    $tmpFinancialCategory = new FinancialCategory();
+    $financial_category_field_sql = $tmpFinancialCategory->getFinancialCategoryFieldAsSQL();
 
-      require_once('utils/finance/FinancialCategory.php');
-      $tmpFinancialCategory = new FinancialCategory();
-      $financial_category_field_sql = $tmpFinancialCategory->getFinancialCategoryFieldAsSQL();
+    if ($onlyIDs) {
+      $select  = "contact_a.id as contact_id, contact_a.id as id ";
+    }
+    else {
+      if ($summary_section) {
+        $select = "contact_a.id as contact_id, contact_a.display_name,  max(".$tmp_select_field.") as date_parm ,
+          sum(total_amount) as total_amount,
+          max(date(expected_date)) as expected_date, max(datediff(date($base_date) , date(expected_date))) as days_overdue,
+          sum(".$tmp_30_days.") as days_30, sum(".$tmp_60_days.") as days_60, sum(".$tmp_90_days.") as days_90, sum(".$tmp_91_days.") as days_91_or_more, count(*) as num_records";
+      }
+      else {
+        $select = "";
 
-        if ( $onlyIDs ) {
-          $select  = "contact_a.id as contact_id, contact_a.id as id ";
-      }else{
-        if($summary_section){
-          $select = "contact_a.id as contact_id, contact_a.display_name,  max(".$tmp_select_field.") as date_parm ,
-   sum(total_amount) as total_amount,
-   max( date(expected_date)) as expected_date, max(datediff(date($base_date) , date(expected_date))) as days_overdue,
-  sum(".$tmp_30_days.") as days_30, sum(".$tmp_60_days.") as days_60, sum(".$tmp_90_days.") as days_90, sum(".$tmp_91_days.") as days_91_or_more, count(*) as num_records";
-
-
-        }else{
-
-
-          $select = "";
-        //print "<br><br>layout choice: ".$layout_choice;
-        if( $layout_choice == 'summarize_contact'
-        ||  $layout_choice == 'summarize_household'){
-
-
+        if ($layout_choice == 'summarize_contact' ||  $layout_choice == 'summarize_household') {
           $select = "contact_a.id as contact_id, contact_a.sort_name as sort_name,
            contact_a.display_name,
            contact_a.contact_type, max(".$tmp_select_field.") as date_parm ,
            sum(total_amount) as total_amount, currency, ct.name as contribution_type_name,
            ".$financial_category_field_sql."
    ctype_a.image_URL as type_image, contact_a.contact_sub_type as contact_sub_type, ctype_b.image_URL as sub_type_image, underlying_contact_id";
-
-
-
         }
-  }
-  }
-
-
-      //  print "<hr><br><br>Layout choice: ".$layout_choice." <br> Inside figure out select: ".$select;
-
+      }
+    }
 
     return $select;
-
   }
 
   function all($offset = 0, $rowcount = 0, $sort = null, $includeContactIDs = false, $onlyIDs = false) {
