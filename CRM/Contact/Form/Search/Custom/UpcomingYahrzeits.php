@@ -105,9 +105,24 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
   
     $group_ids = CRM_Core_PseudoConstant::group();
    
-    $relative_times_choices = array( '0' => 'Current Month', '1' => 'Next Month', '2' => '2 Months From Now' , '3' => '3 Months From Now', '4' => '4 Months From Now'
-       , '5' => '5 Months From Now', '6' => '6 Months From Now', '7' => '7 Months From Now', '8' => '8 Months From Now', '9' => '9 Months From Now', '10' => '10 Months From Now'
-       , '11' => '11 Months From Now', '12' => '12 Months From Now'  );
+    $relative_times_choices = array(
+      '0' => 'Current Month',
+      '1' => 'Next Month',
+      '2' => '2 Months From Now',
+      '3' => '3 Months From Now',
+      '4' => '4 Months From Now',
+      '5' => '5 Months From Now',
+      '6' => '6 Months From Now',
+      '7' => '7 Months From Now',
+      '8' => '8 Months From Now',
+      '9' => '9 Months From Now',
+      '10' => '10 Months From Now',
+      '11' => '11 Months From Now',
+      '12' => '12 Months From Now',
+      '2_d' => 'Next 2 days',
+      '7_d' => 'Next 7 days',
+      '14_d' => 'Next 14 days',
+    );
 
     $mem_ids = $searchTools->getMembershipsforSelectList();
     $org_ids = $searchTools->getMembershipOrgsforSelectList();
@@ -152,21 +167,27 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
       );
     }
     else {
-         $form->add('select', 'group_of_contact', ts('Mourner group(s)'), $group_ids, FALSE,
-          array('id' => 'group_of_contact', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-             );
+      $form->add('select', 'group_of_contact', ts('Mourner group(s)'), $group_ids, FALSE, array(
+        'id' => 'group_of_contact',
+        'multiple' => 'multiple',
+        'title' => ts('-- select --'),
+      ));
 
-        $form->add('select', 'membership_org_of_contact', ts('Mourner has Membership In'), $org_ids, FALSE,
-          array('id' => 'membership_org_of_contact', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-        );
+      $form->add('select', 'membership_org_of_contact', ts('Mourner has Membership In'), $org_ids, FALSE, array(
+        'id' => 'membership_org_of_contact',
+        'multiple' => 'multiple',
+        'title' => ts('-- select --'),
+      ));
 
-         $form->add('select', 'membership_type_of_contact', ts('Mourner Membership Type(s)'), $mem_ids, FALSE,
+      $form->add('select', 'membership_type_of_contact', ts('Mourner Membership Type(s)'), $mem_ids, FALSE,
           array('id' => 'membership_type_of_contact', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-        );
+      );
   
-              $form->add('select', 'relative_time', ts('Timeframe relative to today'), $relative_times_choices, FALSE,
-          array('id' => 'relative_time', 'multiple' => 'multiple', 'title' => ts('-- select --'))
-        );
+      $form->add('select', 'relative_time', ts('Timeframe relative to today'), $relative_times_choices, FALSE, array(
+        'id' => 'relative_time',
+        'multiple' => 'multiple',
+        'title' => ts('-- select --'),
+      ));
     }
   
     /*
@@ -553,36 +574,30 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
     }
 
     $relative_time_array = $this->_formValues['relative_time'];
-  
-    if (is_array($relative_time_array) && count($relative_time_array) > 0) {
-      $i = 0;
+    $relative_time_sql_clauses = array();
 
-      foreach( $relative_time_array as $relative_time) {
-        if ($i == 0) {
-          $rel_time_str = "(";
-        }
-        else if( $i > 0 && strlen($rel_time_str) > 2 ) {
-          $rel_time_str = $rel_time_str." OR ";
-        }
+    if (is_array($relative_time_array) && ! empty($relative_time_array)) {
+      foreach ($relative_time_array as $relative_time) {
+        // If the option is purely numeric, we assume it's a month filter (1,2,3,... months ago)
+        // if it's in the format 7_d, we assume it's 'X days ago'.
+        // [ML] I'm not sure where the 7_d convention came from, but some clients had this in smartgroups.
+        if (is_numeric($relative_time)) {
+          $relative_time = $relative_time . ' MONTH';
 
-        $rel_time_str = $rel_time_str . " (month($date_sql_field_name) =  MONTH(date_add(now(), INTERVAL $relative_time MONTH))
-             AND year($date_sql_field_name) = YEAR(date_add(NOW(), INTERVAL $relative_time MONTH))) ";
-        $i = $i + 1;
+          $relative_time_sql_clauses[] = "(MONTH($date_sql_field_name) = MONTH(date_add(now(), INTERVAL $relative_time))
+             AND YEAR($date_sql_field_name) = YEAR(date_add(NOW(), INTERVAL $relative_time)))";
+        }
+        elseif (substr($relative_time, -2, 2) == '_d') {
+          // Find Yahrzeits in the next X days.
+          $relative_time = substr($relative_time, 0, -2) . ' DAY';
+          $relative_time_sql_clauses[] = "($date_sql_field_name >= NOW() AND $date_sql_field_name <= DATE_ADD(NOW(), INTERVAL $relative_time))";
+        }
       }
     }
 
-    if (strlen($rel_time_str) > 0) {
-      $rel_time_str = $rel_time_str.")";
-      $clauses[] = $rel_time_str;
+    if (! empty($relative_time_sql_clauses)) {
+      $clauses[] = ' (' . implode(' OR ', $relative_time_sql_clauses) . ') ';
     }
-
-    /*
-    $relative_time = $this->_formValues['relative_time'];
-    if( ($relative_time <> '' ) && is_numeric ($relative_time) ){
-       $clauses[] =  "month( $date_sql_field_name ) = MONTH( date_add( now() ,  INTERVAL $relative_time MONTH) )  " ;
-       $clauses[] =  "year( $date_sql_field_name )  = YEAR ( date_add( now() ,  INTERVAL $relative_time MONTH) )  " ;
-    }
-    */
 
     if ($includeContactIDs) {
       $contactIDs = array( );
