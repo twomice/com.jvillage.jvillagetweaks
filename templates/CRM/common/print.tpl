@@ -35,18 +35,35 @@
   {* [ML] added for Jmanage, required for advanced search results *}
   <style type="text/css">@import url({$config->extensionsURL}/com.jvillage.jvillagetweaks/css/print.css);</style>
 
+  {* [ML] hack for #958 printing batch transactions, otherwise JS error *}
+  {literal}
+  <script>
+    var CRM = CRM || {};
+    CRM.config = CRM.config || {};
+  </script>
+  {/literal}
+
   <script src="{$config->resourceBase}/bower_components/jquery/dist/jquery.min.js"></script>
   <script src="{$config->resourceBase}/bower_components/jquery-ui/jquery-ui.min.js"></script>
   <script src="{$config->resourceBase}/bower_components/lodash-compat/lodash.min.js"></script>
   <script src="{$config->resourceBase}/bower_components/select2/select2.min.js"></script>
-  <script src="{$config->resourceBase}/bower_components/bower_components/jquery-validation/dist/jquery.validate.min.js"></script>
+  <script src="{$config->resourceBase}/bower_components/jquery-validation/dist/jquery.validate.min.js"></script>
+  <script src="{$config->resourceBase}/packages/jquery/plugins/jquery.blockUI.min.js"></script>
+  <script src="{$config->resourceBase}/bower_components/datatables/media/js/jquery.dataTables.min.js"></script>
   <script src="{$config->resourceBase}/js/Common.js"></script>
+  <script src="{$config->resourceBase}/js/crm.ajax.js"></script>
 
-  {* [ML] added for Jmanage, required to print accounting batch transactions *}
+  {* [ML] required for jquery-validate on some form (ex: Batch) *}
+  <script src="/civicrm/ajax/l10n-js/en_US"></script>
+
+  {* [ML] added for Jmanage, required to print accounting batch transactions (redmine:958) *}
+  <script src="{$config->resourceBase}/packages/jquery/plugins/jquery.jeditable.min.js"></script>
+  <script src="{$config->resourceBase}/packages/jquery/plugins/jquery.notify.min.js"></script>
+  <script src="{$config->resourceBase}/js/jquery/jquery.crmeditable.js"></script>
+  <script src="{$config->resourceBase}/js/crm.optionEdit.js"></script>
   <link type="text/css" rel="stylesheet" href="{$config->resourceBase}/bower_components/datatables/media/css/jquery.dataTables.min.css" media="all" />
   <link type="text/css" rel="stylesheet" href="{$config->resourceBase}/bower_components/font-awesome/css/font-awesome.min.css" media="all" />
   <link type="text/css" rel="stylesheet" href="{$config->resourceBase}/bower_components/jquery-ui/themes/smoothness/jquery-ui.min.css" media="all" />
-  <script src="{$config->resourceBase}/bower_components/datatables/media/js/jquery.dataTables.min.js?r=qaLKV"></script>
 
   {crmRegion name='html-header' allowCmsOverride=0}{/crmRegion}
 </head>
