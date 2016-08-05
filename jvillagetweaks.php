@@ -199,6 +199,7 @@ function jvillagetweaks_civicrm_check(&$messages) {
   $checks = array(
     'SmtpPassword',
     'MailingsPending',
+    'Timestamps',
   );
 
   foreach ($checks as $c) {
