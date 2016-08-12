@@ -674,17 +674,37 @@ $outCustomColumnNames = array();
 
  }  // end of function
 
+
+  /**
+   * Adjust tokens arrays to a standardized structure. CiviCRM will pass tokens
+   * as array('token_name' => 1) in CiviMail, but as array('token_name') for
+   * other mailings.
+   *
+   * @param Array $tokens The tokens as passed to, e.g., hook_civicrm_tokenValues.
+   * @return Array
+   */
+  function normalize_tokens($tokens) {
+    $normalized_tokens = array();
+    foreach ($tokens as $group => $group_tokens) {
+      if (current($group_tokens) == 1) {
+        $normalized_tokens[$group] = array_keys($group_tokens);
+      }
+      else {
+        $normalized_tokens[$group] = $group_tokens;
+      }
+    }
+    return $normalized_tokens;
+  }
+
 /*****************************************************************
 **  Prepare mail-merge tokens related to yahrzeits.
 **
 **
 *****************************************************************/
- function process_yahrzeit_tokens( &$values, &$contactIDs ,  &$token_yahrzeits_long, &$token_yahrzeits_short, &$token_yah_dec_name, &$token_yah_english_date,  &$token_yah_hebrew_date, &$token_yah_dec_death_english_date,  &$token_yah_dec_death_hebrew_date ,   &$token_yah_relationship_name,
-  &$token_yah_erev_shabbat_before, &$token_yah_shabbat_morning_before, &$token_yah_erev_shabbat_after, &$token_yah_shabbat_morning_after,
-  &$token_yah_english_date_morning  ){
+ function process_yahrzeit_tokens(&$values, &$contactIDs, $tokens = array(), $token_strings = array()) {
+   $tokens = self::normalize_tokens($tokens);
       
     //  yahrzeit_morning_format_english
-   // print "<br><br>Inside process yahrzeit tokens: ".$token_yah_english_date_morning ;
       
       $default_parm = "";
      
@@ -698,197 +718,189 @@ $outCustomColumnNames = array();
       
       session_start();
 
-if(isset($_SESSION['yahrzeit_sql']))
-    {
-       // This is being called just after running a yahrzeit custom search. 
+    require_once 'CRM/Hebrew/HebrewDates.php';
+    require_once('utils/util_custom_fields.php');
 
-        // Identifying the user
-        $yahrzeit_data= $_SESSION['yahrzeit_sql'];
-      //  $tmp_yah_tablename = $_SESSION['yahrzeit_temp_tablename'];
-       
-       // print "<br><br>Found Yahrzeit temp table in session: ".$tmp_yah_tablename; 
-        // Information for the user.
-    }
-else
-    {
-       // print "<br><br>Could not find yahrzeit data in the session. Please run the yahrzeit custom search first. "; 
-   
-    } 
-    
-    
-      /*    */
-require_once 'CRM/Hebrew/HebrewDates.php';
-require_once('utils/util_custom_fields.php');
+  // Process "yahrzeit.all" token if in use.
+  if (in_array(preg_replace('/^yahrzeit\./', '', $token_strings['all']), $tokens['yahrzeit'])) {
 
-$custom_field_group_label = "Extended Date Information";
-$custom_field_birthdate_sunset_label = "Birth Date Before Sunset";
-$custom_field_deathdate_sunset_label = "Death Date Before Sunset" ;
+      $yizkor_sql_str = "SELECT DISTINCT mourner_contact_id as contact_id, mourner_contact_id as id, mourner_name as sort_name, deceased_name as deceased_name,
+      deceased_display_name as deceased_display_name, deceased_contact_id, mourner_email as email , contact_b.deceased_date,
+      contact_b.deceased_date as ddate,
+      d_before_sunset, hebrew_deceased_date,
+       concat( year(yahrzeit_date), '-', month(yahrzeit_date), '-', day(yahrzeit_date)) as yahrzeit_date_sort , yahrzeit_date_display, relationship_name_formatted,
+        yahrzeit_type, mourner_observance_preference
+         FROM " . self::get_sql_table_name() . " contact_b INNER JOIN civicrm_contact contact_a ON contact_a.id = contact_b.mourner_contact_id
+         WHERE contact_b.created_date >= DATE_SUB(CURDATE(), INTERVAL 10 MINUTE) AND (yahrzeit_type = mourner_observance_preference)
+         AND yahrzeit_date >= CURDATE()
+         AND contact_b.mourner_contact_id in (   " . implode(',', $contactIDs) ." )
+         ORDER BY sort_name asc";
 
+   $html_table_begin =  '<table border=0 style="border-spacing: 0; border-collapse: collapse; width: 100%">
+        <tr><th style="text-align: left;">In memory of</th>
+        <th style="text-align: left;">Hebrew Date of Death</th>
+        <th style="text-align: left;">English Date of death</th>
+        <th style="text-align: left;">Next Yahrzeit</th>
+        <th style="text-align: left;">Relationship</th>
+        <th style="text-align: left;">Observance Type</th>
+        </tr>';
+   $html_table_end = ' </table>  	 ';
+   $prev_cid = "";
+    $cur_cid_html = "";
+  $dao =& CRM_Core_DAO::executeQuery( $yizkor_sql_str,   CRM_Core_DAO::$_nullArray ) ;
 
-$customFieldLabels = array($custom_field_birthdate_sunset_label   , $custom_field_deathdate_sunset_label );
-$extended_date_table = "";
-$outCustomColumnNames = array();
+    while ( $dao->fetch( ) ) {
+    //  print "<br>Have yizkor record!";
+      $cur_cid = $dao->contact_id;
 
+         if ( $cur_cid != $prev_cid ){
+             if ( $prev_cid != ""){
+             // Wrap up table for previous contact.
+             $cur_cid_html = $cur_cid_html.$html_table_end;
+             $values[$prev_cid][$token_strings['all']] = $values[$prev_cid][$token_strings['short']] = $cur_cid_html;
+             }
 
-getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_date_table, $outCustomColumnNames);
+          // start html table for this contact
+          $cur_cid_html = $html_table_begin;
 
-$extended_birth_date  =  $outCustomColumnNames[$custom_field_birthdate_sunset_label];
-$extended_death_date  =  $outCustomColumnNames[$custom_field_deathdate_sunset_label];
- 
-	$i = 1;
-        foreach ( $contactIDs as $cid ) {
-          $cid_list = $cid_list.$cid;
-          if( $i < count($contactIDs) ){
-              $cid_list = $cid_list.' ,';
-          }
-          $i = $i +1;
-        }
-
- 
- 	if( $i == 1){
- 	
- 	return;
- 	}
- 
- 
- 
-
-	$yahrzeit_temp_table_name =  self::get_sql_table_name();
-
-    $yizkor_sql_str = "SELECT DISTINCT mourner_contact_id as contact_id, mourner_contact_id as id, mourner_name as sort_name, deceased_name as deceased_name, 
-    deceased_display_name as deceased_display_name, deceased_contact_id, mourner_email as email , contact_b.deceased_date, 
-    contact_b.deceased_date as ddate, 
-    d_before_sunset, hebrew_deceased_date,
-     concat( year(yahrzeit_date), '-', month(yahrzeit_date), '-', day(yahrzeit_date)) as yahrzeit_date_sort , yahrzeit_date_display, relationship_name_formatted,
-      yahrzeit_type, mourner_observance_preference
-       FROM ".$yahrzeit_temp_table_name." contact_b INNER JOIN civicrm_contact contact_a ON contact_a.id = contact_b.mourner_contact_id 
-       WHERE contact_b.created_date >= DATE_SUB(CURDATE(), INTERVAL 10 MINUTE) AND (yahrzeit_type = mourner_observance_preference) 
-       AND yahrzeit_date >= CURDATE()
-       AND contact_b.mourner_contact_id in (   $cid_list ) 
-       ORDER BY sort_name asc";
-       
-    //   print "<br>Yizkor sql: ".$yizkor_sql_str;
-       
-       
-
- $html_table_begin =  '<table border=0 style="border-spacing: 0; border-collapse: collapse; width: 100%">
- 			<tr><th style="text-align: left;">In memory of</th>
- 			<th style="text-align: left;">Hebrew Date of Death</th>
- 			<th style="text-align: left;">English Date of death</th>
- 			<th style="text-align: left;">Next Yahrzeit</th>
- 			<th style="text-align: left;">Relationship</th>
- 			<th style="text-align: left;">Observance Type</th>
- 			</tr>';
- $html_table_end = ' </table>  	 ';
- $no_rec = true;
- $prev_cid = "";
-  $cur_cid_html = "";
-$dao =& CRM_Core_DAO::executeQuery( $yizkor_sql_str,   CRM_Core_DAO::$_nullArray ) ;
-
-	while ( $dao->fetch( ) ) {	
-	//  print "<br>Have yizkor record!"; 
-	  $cur_cid = $dao->contact_id;
-	  
-       if ( $cur_cid != $prev_cid ){
-           if ( $prev_cid != ""){
-    	     // Wrap up table for previous contact.
-     	     $cur_cid_html = $cur_cid_html.$html_table_end;
-       	     $values[$prev_cid][$token_yahrzeits_long] = $values[$prev_cid][$token_yahrzeits_short] = $cur_cid_html;
-       	   }
-        
-        // start html table for this contact
-           $cur_cid_html = "";
-          $cur_cid_html = $cur_cid_html.$html_table_begin;
-          
-       }	  
-	  
-	 $no_rec = false;
-	 //   figure out the next yahrzeit for each record, 
-		$deceased_name = $dao->deceased_name;	 
-		$mourner_contact_id = $dao->contact_id;
-		$mourner_email  = $dao->email;
-		$mourner_name = $dao->sort_name;
-   		//$deceased_year = $dao->dyear;
-		//$deceased_month = $dao->dmonth;
-		//$deceased_day = $dao->dday;
-		$hebrew_deceased_date = $dao->hebrew_deceased_date;
-		$english_deceased_date = $dao->ddate;
-		$deceased_date_before_sunset = $dao->d_before_sunset;
-		$relationship_to_mourner = $dao->relationship_name_formatted;
-		$yahrzeit_date_display = $dao->yahrzeit_date_display; 
-		$yahrzeit_type = $dao->yahrzeit_type;
-		
-		//$hebrew_date_format = 'dd MM yy';
-		$erev_start_flag = '1';
-		
-
-		//$hebrew_deceased_date  = self::util_convert2hebrew_date($deceased_year, $deceased_month, $deceased_day, $deceased_date_before_sunset, $hebrew_date_format);
- 	        //$gregorian_date_format_plain = 'yyyy-mm-dd';
-		//$yahrzeit_date_tmp = self::util_get_next_yahrzeit_date( $deceased_year, $deceased_month, $deceased_day, $deceased_date_before_sunset, $erev_start_flag, $gregorian_date_format_plain);	
-
-		//$gregorian_date_format = "MM dd, yyyy";
-		//$yahrzeit_date_formated_tmp = self::util_get_next_yahrzeit_date( $deceased_year, $deceased_month, $deceased_day, $deceased_date_before_sunset, $erev_start_flag, $gregorian_date_format );
-		
-		
-		if( $deceased_date_before_sunset == '1'){
-			$deceased_date_before_sunset_formated = 'Yes';
-		}else if( $deceased_date_before_sunset == '0'){
-			$deceased_date_before_sunset_formated = 'No';
-		}
-		
-		if($yahrzeit_type == '1'){
-			$yahrzeit_type_formatted = 'English';
-		}else{
-			$yahrzeit_type_formatted = 'Hebrew';
-		}
-		
-		
-		
-	      $yahrzeit_html_row =   '<tr><td>'.$deceased_name.'</td><td>'.$hebrew_deceased_date.'</td><td>'.$english_deceased_date.
-	      '</td><td>'.$yahrzeit_date_display.'</td><td>'.$relationship_to_mourner.'</td><td>'.$yahrzeit_type_formatted.'</td> </tr>';
-		
-		
-		$cur_cid_html = $cur_cid_html.$yahrzeit_html_row;
-   	      //if(array_key_exists($mourner_contact_id,  $values)){
-         
-         	// $values[$mourner_contact_id][$token_yahrzeits_long] = $values[$mourner_contact_id][$token_yahrzeits_short] = $html_table_begin.$yahrzeit_html_row.$html_table_end; 
-         	
-         	
-         //	 }
-          $prev_cid = $cur_cid; 	
-         	
          }
 
-	$dao->free( );
+     //   figure out the next yahrzeit for each record,
+      $deceased_name = $dao->deceased_name;
+      $mourner_contact_id = $dao->contact_id;
+      $mourner_email  = $dao->email;
+      $mourner_name = $dao->sort_name;
+        //$deceased_year = $dao->dyear;
+      //$deceased_month = $dao->dmonth;
+      //$deceased_day = $dao->dday;
+      $hebrew_deceased_date = $dao->hebrew_deceased_date;
+      $english_deceased_date = $dao->ddate;
+      $deceased_date_before_sunset = $dao->d_before_sunset;
+      $relationship_to_mourner = $dao->relationship_name_formatted;
+      $yahrzeit_date_display = $dao->yahrzeit_date_display;
+      $yahrzeit_type = $dao->yahrzeit_type;
+
+      if($yahrzeit_type == '1'){
+        $yahrzeit_type_formatted = 'English';
+      }else{
+        $yahrzeit_type_formatted = 'Hebrew';
+      }
+
+
+
+          $yahrzeit_html_row =   '<tr><td>'.$deceased_name.'</td><td>'.$hebrew_deceased_date.'</td><td>'.$english_deceased_date.
+          '</td><td>'.$yahrzeit_date_display.'</td><td>'.$relationship_to_mourner.'</td><td>'.$yahrzeit_type_formatted.'</td> </tr>';
+
+
+          $cur_cid_html = $cur_cid_html.$yahrzeit_html_row;
+          $prev_cid = $cur_cid;
+
+       }
+
+    $dao->free( );
+
+    if ( $prev_cid != ""){
+       // Wrap up table for previous contact.
+       $cur_cid_html = $cur_cid_html.$html_table_end;
+       $values[$prev_cid][$token_strings['all']] = $cur_cid_html;
+    }
+  }
+
 	
-	if ( $prev_cid != ""){
-    	     // Wrap up table for previous contact.
-     	     $cur_cid_html = $cur_cid_html.$html_table_end;
-       	     $values[$prev_cid][$token_yahrzeits_long] = $cur_cid_html;
-       	   }
-	
-	
+  // Set default "no yahrzeits found" message for contacts without a value in the 'yahrzeit.all' token.
 	foreach ( $contactIDs as $cid ) {
-   	if(array_key_exists($cid,  $values)){
-   	  if ( $values[$cid][$token_yahrzeits_long] == ""){
-   	    $values[$cid][$token_yahrzeits_long] = $values[$cid][$token_yahrzeits_short] = "No yahrzeits found.";
-   	  
-   	  	}
-   	
-   		}
-  	 }	
-  	 
-  	 /****  Do SQL for getting regular yahrzeit data ***************/
-  	
-  	 
-        $yahrzeit_sql = $yahrzeit_data; 
-  	  
-  	  
-  	//print "<br><br>SQL: ".$yahrzeit_sql;
-  	
-  if( strlen($yahrzeit_sql) > 0 ){
-  	 $dao =& CRM_Core_DAO::executeQuery( $yahrzeit_sql ,   CRM_Core_DAO::$_nullArray ) ;
-  	 
+    if(array_key_exists($cid,  $values)){
+      if ($values[$cid][$token_strings['all']] == "") {
+        $values[$cid][$token_strings['all']] = $values[$cid][$token_strings['short']] = "No yahrzeits found.";
+      }
+    }
+  }
+
+    // Determine yahrzeit date based on yahrzeit.filter___days_advance_N token,
+    // if it's in use.
+    $days_advance_token_string = preg_replace('/^yahrzeit\./', '', $token_strings['filter___days_advance_']);
+    $yahrzeit_filter_dates = array();
+    foreach ($tokens['yahrzeit'] as $token) {
+      preg_match("/^{$days_advance_token_string}([0-9]+)/", $token, $matches);
+      if (!empty($matches[1])) {
+        $yahrzeit_filter_dates[] = $matches[1];
+       }
+    }
+
+    $yahrzeit_filter_date = date('Ymd', strtotime('+' . min($yahrzeit_filter_dates) . 'days'));
+
+    // Determine whether we're coming from the upcoming Yahrzeits custom search.
+    // Default is FALSE.
+    $flag_is_custom_search = FALSE;
+    // Get ID of UpcomingYahrzeits custom search
+    $params = array(
+      'name' => 'CRM_Contact_Form_Search_Custom_UpcomingYahrzeits',
+      'sequential' => TRUE,
+    );
+    $result = civicrm_api3('custom_search', 'get', $params);
+    if (!empty($result['values']) && !empty($result['values'][0]['value'])) {
+      $custom_search_csid = $result['values'][0]['value'];
+      // Determine whether we're coming from the upcoming Yahrzeits custom search.
+      $url_components = parse_url(CRM_Utils_Request::retrieve('entryURL', 'String'));
+      parse_str(html_entity_decode($url_components['query']), $url_query);
+      if (
+        $url_components['path'] == '/civicrm/contact/search/custom'
+        && !empty($url_query['csid'])
+        && $url_query['csid'] == $custom_search_csid
+      ) {
+        $flag_is_custom_search = TRUE;
+       }
+    }
+
+    // Populate tokens if possible.
+    if ($flag_is_custom_search && !empty($_SESSION['yahrzeit_sql'])) {
+      // If we're coming from the Yahrzeits custom search, use the SQL defined in
+      // that search to get values for all contacts returned in that search.
+      $yahrzeit_sql = $_SESSION['yahrzeit_sql'];
+      $yahrzeit_sql_params = CRM_Core_DAO::$_nullArray;
+    }
+    elseif (!empty($yahrzeit_filter_date)) {
+      // If we're not coming from the Yahrzeit custom search, use the
+      // 'yahrzeit.filter___days_advance_N' filter to determine a date on which
+      // to check for yahrzeits, and work that into an SQL query that can be
+      // used to get the correct token values.
+      $yahrzeit_sql = "
+        SELECT
+          contact_b.mourner_contact_id as contact_id,
+          contact_b.deceased_contact_id as deceased_contact_id,
+          contact_b.mourner_name as sort_name,
+          contact_b.deceased_name as deceased_name,
+          contact_b.deceased_display_name as deceased_display_name,
+          date_format(contact_deceased.deceased_date, '%M %e, %Y' )  as deceased_date,
+          contact_b.yahrzeit_hebrew_date_format_hebrew,
+          contact_b.yahrzeit_hebrew_date_format_english,
+          contact_b.hebrew_deceased_date,
+          date_format(contact_b.yahrzeit_date, '%Y-%m-%d' ) as yahrzeit_date_sort,
+          date_format(contact_b.yahrzeit_date, '%M %e, %Y' ) as yahrzeit_date_display,
+          contact_b.relationship_name_formatted,
+          if( contact_b.mourner_observance_preference, date_format(contact_b.yahrzeit_date_morning ,'%M %e, %Y' ), date_format( contact_b.yahrzeit_date_morning, '%M %e, %Y')) as yahrzeit_morning_format_english,
+          date_format( contact_b.yahrzeit_erev_shabbat_before, '%M %e, %Y' ) as yah_erev_shabbat_before,
+          date_format( contact_b.yahrzeit_erev_shabbat_after, '%M %e, %Y' ) as yah_erev_shabbat_after
+        FROM
+          pogstone_temp_yahrzeits contact_b
+          LEFT JOIN civicrm_contact contact_a ON contact_a.id =  contact_b.mourner_contact_id
+          LEFT JOIN civicrm_contact contact_deceased on contact_deceased.id = contact_b.deceased_contact_id
+        WHERE
+          contact_deceased.is_deleted <> 1
+          AND ( contact_a.id is null OR contact_a.is_deleted <> 1 )
+          AND ( contact_a.contact_type IN ( 'Household', 'Individual')  AND contact_a.is_deceased <> 1 )
+          AND (yahrzeit_type = mourner_observance_preference)
+          AND yahrzeit_date = %1
+          AND contact_b.mourner_contact_id in (" . implode(',', $contactIDs) . ")
+        GROUP BY mourner_contact_id, deceased_contact_id, yahrzeit_date
+        ORDER BY yahrzeit_date, deceased_name ASC
+      ";
+      $yahrzeit_sql_params = array(
+        1 => array($yahrzeit_filter_date, 'Date'),
+      );
+    }
+    $dao = & CRM_Core_DAO::executeQuery($yahrzeit_sql, $yahrzeit_sql_params);
+   	 
   	 // Figure out how to format date for this locale
     	$config = CRM_Core_Config::singleton( );
 	
@@ -923,8 +935,8 @@ $dao =& CRM_Core_DAO::executeQuery( $yizkor_sql_str,   CRM_Core_DAO::$_nullArray
 	   // TODO: Put next field into a token. 
 	   $yahrzeit_hebrew_date_format_hebrew = $dao->yahrzeit_hebrew_date_format_hebrew;
 	   $yahrzeit_date_raw = $dao->yahrzeit_date_sort;
-           $yahrzeit_morning_format_english =  $dao->yahrzeit_morning_format_english ; 
-         // $token_yah_english_date_morning  
+     $yahrzeit_morning_format_english =  $dao->yahrzeit_morning_format_english ;
+     // $token_strings['english_date_morning']
 	
 	
 	  $default_seperator = ", "; 
@@ -937,28 +949,55 @@ $dao =& CRM_Core_DAO::executeQuery( $yizkor_sql_str,   CRM_Core_DAO::$_nullArray
             
             
             $tmp_deceasedids_for_con[$cid] = $tmp_deceasedids_for_con[$cid].";".$dao->deceased_contact_id;	
-            if(strlen( $values[$cid][$token_yah_dec_name] ) > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ; 
+            if (strlen($values[$cid][$token_strings['deceased_name']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+
+            $values[$cid][$token_strings['deceased_name']] = $values[$cid][$token_strings['deceased_name']] . $seper . $deceased_display_name;
             
-                
-            $values[$cid][$token_yah_dec_name] = $values[$cid][$token_yah_dec_name].$seper.$deceased_display_name ; 
-            
-            if(strlen( $values[$cid][$token_yah_english_date] ) > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ; 
-            $values[$cid][$token_yah_english_date] = $values[$cid][$token_yah_english_date].$seper.$yahrzeit_date_display; 
-            
-            if(strlen( $values[$cid][$token_yah_hebrew_date])  > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ; 
-            $values[$cid][$token_yah_hebrew_date] = $values[$cid][$token_yah_hebrew_date].$seper.$yahrzeit_hebrew_date_format_english; 
-            
-            if(strlen( $values[$cid][$token_yah_dec_death_english_date])  > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ; 
-            $values[$cid][$token_yah_dec_death_english_date] =  $values[$cid][$token_yah_dec_death_english_date].$seper.$english_deceased_date ; 
-            
-            if(strlen( $values[$cid][$token_yah_dec_death_hebrew_date])  > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ;
-            $values[$cid][$token_yah_dec_death_hebrew_date] =  $values[$cid][$token_yah_dec_death_hebrew_date].$seper.$hebrew_deceased_date ; 
-            
-            if(strlen( $values[$cid][$token_yah_relationship_name] ) > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ; 
-            $values[$cid][$token_yah_relationship_name] = $values[$cid][$token_yah_relationship_name].$seper.$relationship_name_formatted ; 
-            
-            if(strlen( $values[$cid][$token_yah_english_date_morning] ) > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ;
-            $values[$cid][$token_yah_english_date_morning] = $values[$cid][$token_yah_english_date_morning].$seper.$yahrzeit_morning_format_english ; 
+            if (strlen($values[$cid][$token_strings['english_date']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+            $values[$cid][$token_strings['english_date']] = $values[$cid][$token_strings['english_date']] . $seper . $yahrzeit_date_display;
+
+            if (strlen($values[$cid][$token_strings['hebrew_date']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+            $values[$cid][$token_strings['hebrew_date']] = $values[$cid][$token_strings['hebrew_date']] . $seper . $yahrzeit_hebrew_date_format_english;
+
+            if (strlen($values[$cid][$token_strings['death_english_date']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+            $values[$cid][$token_strings['death_english_date']] = $values[$cid][$token_strings['death_english_date']] . $seper . $english_deceased_date;
+
+            if (strlen($values[$cid][$token_strings['death_hebrew_date']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+            $values[$cid][$token_strings['death_hebrew_date']] = $values[$cid][$token_strings['death_hebrew_date']] . $seper . $hebrew_deceased_date;
+
+            if (strlen($values[$cid][$token_strings['relationship_name']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+            $values[$cid][$token_strings['relationship_name']] = $values[$cid][$token_strings['relationship_name']] . $seper . $relationship_name_formatted;
+
+            if (strlen($values[$cid][$token_strings['english_date_morning']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+            $values[$cid][$token_strings['english_date_morning']] = $values[$cid][$token_strings['english_date_morning']] . $seper . $yahrzeit_morning_format_english;
 
             // take care of tokens for Friday, Saturday before the yahrzeit, and the Friday, Saturday after the yahrzeit.
             $yah_timestamp = strtotime($yahrzeit_date_raw);
@@ -995,17 +1034,33 @@ $dao =& CRM_Core_DAO::executeQuery( $yizkor_sql_str,   CRM_Core_DAO::$_nullArray
 
             }                
 
-	     if(strlen( $values[$cid][$token_yah_erev_shabbat_before] ) > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ;
-            $values[$cid][$token_yah_erev_shabbat_before] = $values[$cid][$token_yah_erev_shabbat_before].$seper.$formatted_friday_before;
-            
-            if(strlen( $values[$cid][$token_yah_shabbat_morning_before] ) > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ;
-            $values[$cid][$token_yah_shabbat_morning_before] = $values[$cid][$token_yah_shabbat_morning_before].$seper.$formatted_saturday_before;
+            if (strlen($values[$cid][$token_strings['erev_shabbat_before']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+            $values[$cid][$token_strings['erev_shabbat_before']] = $values[$cid][$token_strings['erev_shabbat_before']] . $seper . $formatted_friday_before;
 
-	     if(strlen( $values[$cid][$token_yah_erev_shabbat_after] ) > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ;
-            $values[$cid][$token_yah_erev_shabbat_after] =  $values[$cid][$token_yah_erev_shabbat_after].$seper.$formatted_friday_after; 
-            
-            if(strlen( $values[$cid][$token_yah_shabbat_morning_after] ) > 0 ){    $seper = $default_seperator;  }else{  $seper = "";    }  ;
-            $values[$cid][$token_yah_shabbat_morning_after] =  $values[$cid][$token_yah_shabbat_morning_after].$seper.$formatted_saturday_after; 
+            if (strlen($values[$cid][$token_strings['shabbat_morning_before']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+            $values[$cid][$token_strings['shabbat_morning_before']] = $values[$cid][$token_strings['shabbat_morning_before']] . $seper . $formatted_saturday_before;
+
+            if (strlen($values[$cid][$token_strings['erev_shabbat_after']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+            $values[$cid][$token_strings['erev_shabbat_after']] = $values[$cid][$token_strings['erev_shabbat_after']] . $seper . $formatted_friday_after;
+
+            if (strlen($values[$cid][$token_strings['shabbat_morning_after']]) > 0) {
+              $seper = $default_seperator;
+            } else {
+              $seper = "";
+            };
+            $values[$cid][$token_strings['shabbat_morning_after']] = $values[$cid][$token_strings['shabbat_morning_after']] . $seper . $formatted_saturday_after;
             
             }
           }
@@ -1013,7 +1068,6 @@ $dao =& CRM_Core_DAO::executeQuery( $yizkor_sql_str,   CRM_Core_DAO::$_nullArray
  }
   	 $dao->free( );
   	 
-  	 }
 
 }
 
