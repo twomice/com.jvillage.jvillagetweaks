@@ -1,106 +1,99 @@
 <?php
 
-class HebrewCalendar{
+class HebrewCalendar {
 
-// Put Purim in Adar II, if its not a leap year it should be shifted to Adar. 
-// yom hazikaron needs to be shifted if it or the day after fall on a shabbat. 
-// yom haatzmaut needs to be shifted if it or the day before fall on a shabbat. 
-private  $jewish_holidays_major = array("rosh_hashana" => "1/1", 
-   					"rosh_hashana_2" => "1/2",
-					"yom_kippur" => "1/10", 
-					"sukkot" => "1/15", 
-					"shemini_atzeret" => "1/22", 
-					"simchat_torah" => "1/23", 
-					"hannukah_1" => "3/24",
-					"hannukah_2" => "3/25",
-					"hannukah_3" => "3/26",
-					"hannukah_4" => "3/27",
-					"hannukah_5" => "3/28",
-					"hannukah_6" => "3/29",
-					"hannukah_7" => "3/30",
-					"hannukah_8" => "4/1",
-					"purim" => "7/14",
-					"passover" => "8/15",
-					"shavuot" => "10/6",
-					"tisha_b_av" => "12/9" ,
-					"yom_ha_shoah" => "8/27",
-					"yom_hazikaron" => "9/4",
-					"yom_haatzmaut" => "9/5",
-					"yom_yerushalayim" => "9/28");
-					
-					
-  private  $jewish_holidays_minor = array('aaa' => 'a');
+  // Put Purim in Adar II, if its not a leap year it should be shifted to Adar. 
+  // yom hazikaron needs to be shifted if it or the day after fall on a shabbat. 
+  // yom haatzmaut needs to be shifted if it or the day before fall on a shabbat. 
+  private $jewish_holidays_major = array(
+    "rosh_hashana" => "1/1", 
+    "rosh_hashana_2" => "1/2",
+    "yom_kippur" => "1/10", 
+    "sukkot" => "1/15", 
+    "shemini_atzeret" => "1/22", 
+    "simchat_torah" => "1/23", 
+    "hannukah_1" => "3/24",
+    "hannukah_2" => "3/25",
+    "hannukah_3" => "3/26",
+    "hannukah_4" => "3/27",
+    "hannukah_5" => "3/28",
+    "hannukah_6" => "3/29",
+    "hannukah_7" => "3/30",
+    "hannukah_8" => "4/1",
+    "purim" => "7/14",
+    "passover" => "8/15",
+    "shavuot" => "10/6",
+    "tisha_b_av" => "12/9" ,
+    "yom_ha_shoah" => "8/27",
+    "yom_hazikaron" => "9/4",
+    "yom_haatzmaut" => "9/5",
+    "yom_yerushalayim" => "9/28",
+  );
+
+  private $jewish_holidays_minor = array('aaa' => 'a');
  
-// Should always be set to false in a production environment. 
- const ALWAYS_CLEAR_TEMP_TABLE = false;
+  // Should always be set to false in a production environment. 
+  const ALWAYS_CLEAR_TEMP_TABLE = false;
  
- // After how many minutes should yahrzeit cache data be recalculated?
- // In a production environment this is typically 12 hours, ie 720 minutes. 
- const YAHRZEIT_CACHE_TIMEOUT = "15"; 
-  
+  // After how many minutes should yahrzeit cache data be recalculated?
+  // In a production environment this is typically 12 hours, ie 720 minutes. 
+  const YAHRZEIT_CACHE_TIMEOUT = "15"; 
 
- const HEBREW_MONTH_TISHREI = "1";
- const HEBREW_MONTH_HESHVAN = "2";
- const HEBREW_MONTH_KISLEV = "3";
- const HEBREW_MONTH_TEVET = "4";
- const HEBREW_MONTH_SHEVAT = "5";  
- const HEBREW_MONTH_ADAR = "6"; 
- const HEBREW_MONTH_ADAR_2 = "7"; 
- const HEBREW_MONTH_NISAN = "8"; 
- const HEBREW_MONTH_IYYAR = "9";  
- const HEBREW_MONTH_SIVAN = "10"; 
- const HEBREW_MONTH_TAMUZ = "11"; 
- const HEBREW_MONTH_AV    = "12";
- const HEBREW_MONTH_ELUL  = "13";  
+  const HEBREW_MONTH_TISHREI = "1";
+  const HEBREW_MONTH_HESHVAN = "2";
+  const HEBREW_MONTH_KISLEV = "3";
+  const HEBREW_MONTH_TEVET = "4";
+  const HEBREW_MONTH_SHEVAT = "5";
+  const HEBREW_MONTH_ADAR = "6";
+  const HEBREW_MONTH_ADAR_2 = "7";
+  const HEBREW_MONTH_NISAN = "8";
+  const HEBREW_MONTH_IYYAR = "9";
+  const HEBREW_MONTH_SIVAN = "10";
+  const HEBREW_MONTH_TAMUZ = "11";
+  const HEBREW_MONTH_AV    = "12";
+  const HEBREW_MONTH_ELUL  = "13";
 
+  /**
+   * This function takes in a English date, and returns the name of
+   * the Jewish holiday. If there is no holiday, then  an empty
+   * string is returned.
+   */
+  function get_rosh_hodesh_name($iyear, $imonth, $iday) {
+    $tmp_name = "";
+    $date_before_sunset = 1;
+    $hebrew_date_format = 'mm/dd/yy';
+    $heb_date =  self::util_convert2hebrew_date($iyear, $imonth, $iday, $date_before_sunset, $hebrew_date_format);
 
-/******************************************************************
-*   This function takes in a English date, and returns the name of 
-*   the Jewish holiday. If there is no holiday, then  an empty 
-*   string is returned. 
-******************************************************************/
-function get_rosh_hodesh_name($iyear, $imonth, $iday){
+    $heb_date_array = explode('/', $heb_date);
+    $heb_month = $heb_date_array[0];
+    $heb_day = $heb_date_array[1];
+    $heb_year = $heb_date_array[2];
 
-	$tmp_name = "";
-	$date_before_sunset = 1;
-	$hebrew_date_format = 'mm/dd/yy' ;
-	$heb_date =  self::util_convert2hebrew_date($iyear, $imonth, $iday, $date_before_sunset, $hebrew_date_format);
-	
-	$heb_date_array = explode ( "/" , $heb_date ) ;
-	$heb_month = $heb_date_array[0];
-	$heb_day = $heb_date_array[1];
-	$heb_year = $heb_date_array[2];
-	
-	if($heb_month <> "1"){
-		if($heb_day == "1"){
-			$julian_date = gregoriantojd($imonth,$iday,$iyear);
-			//$month_name = self::util_get_hebrew_month_name( $julian_date, $heb_date);
-	    		$tmp_name = "Rosh Hodesh ".$month_name ;
-	
-	
-		}else if( $heb_day == "30"){
-			// TODO: Need to advance Jullian date to the next day. 
-			// TODO: Need to advance Hebrew date to the next day. 
-			$tmp_name = "Rosh Hodesh ".$month_name ;
-	
-		}else{
-			$tmp_name = "";
-	
-		}
-	}
-	
-	return $tmp_name;
+    if ($heb_month <> "1") {
+      if ($heb_day == "1") {
+        $julian_date = gregoriantojd($imonth,$iday,$iyear);
+        //$month_name = self::util_get_hebrew_month_name( $julian_date, $heb_date);
+        $tmp_name = "Rosh Hodesh ".$month_name ;
+      }
+      elseif ($heb_day == "30") {
+        // TODO: Need to advance Jullian date to the next day. 
+        // TODO: Need to advance Hebrew date to the next day. 
+        $tmp_name = "Rosh Hodesh ".$month_name ;
+      }
+      else {
+        $tmp_name = "";
+      }
+    }
 
-}
+    return $tmp_name;
+  }
 
-
-
-/******************************************************************
-*   This function takes in a English date, and returns the name of 
-*   the Jewish holiday. If there is no holiday, then  an empty 
-*   string is returned. 
-******************************************************************/
-function get_jewish_holiday_name($iyear, $imonth, $iday){
+  /**
+   * This function takes in a English date, and returns the name of
+   * the Jewish holiday. If there is no holiday, then  an empty
+   * string is returned.
+   */
+  function get_jewish_holiday_name($iyear, $imonth, $iday) {
 	
 	$date_before_sunset = 1;
 	$hebrew_date_format = 'mm/dd/yy' ;
@@ -149,12 +142,10 @@ function get_jewish_holiday_name($iyear, $imonth, $iday){
 		// Iyar 5 falls on a Monday, push it out 1 day to Tuesday.
 		$this->jewish_holidays_major['yom_haatzmaut'] = "9/6";
 	   	$this->jewish_holidays_major['yom_hazikaron'] = "9/5";
-	} 
+	}
+
 	/************************************************************************/
 	// At this point, we have the correct adjusted dates for yom_haatzmaut and yom_hazikaron
-	
-	
-	
 	// Now we may need to adjust the last 2 nighs of Hannuka, if there is no "Kislev 30" this year.
 	$heb_kislev_month = '3';
 	$heb_kislev_last_day = '30';
@@ -163,8 +154,7 @@ function get_jewish_holiday_name($iyear, $imonth, $iday){
 		$this->jewish_holidays_major['hannukah_7'] = "4/1";
 		$this->jewish_holidays_major['hannukah_8'] = "4/2";	
 	}
-	
-	
+
 	// Go ahead and get human-readable names of holidays. 
 	switch($heb_mm_dd){
 	 	case $this->jewish_holidays_major['rosh_hashana'] :
@@ -234,48 +224,36 @@ function get_jewish_holiday_name($iyear, $imonth, $iday){
 			$holiday_name = "Yom Yerushalayim";
 			break; 	
 		}
-		
+
 	return $holiday_name; 
-}
+  }
 
+  /**
+   * This function takes a Hebrew date as input parms: yyyy, mm, dd
+   * and returns it nicely formated as: dd HebrewMonthName yyyy
+   */
+  function util_formatHebrewDate(&$iyear, &$imonth, &$iday) {
+    if ($imonth=='') {
+      return "Month is required";
+    }
+    elseif ($iday== '') {
+      return "Day is required";
+    }
+    elseif($iyear=='') {
+      return "Year is required";
+    }
+    else {
+      $julian_date =  cal_to_jd ( CAL_JEWISH  ,  $imonth , $iday ,$iyear  );
+      $heb_month_name = jdmonthname($julian_date,4);
+      $formated_hebrew_date = "$iday $heb_month_name $iyear" ;
+      return $formated_hebrew_date;
+    }
+  }
 
-
-/******************************************************************
-* This function takes a Hebrew date as input parms: yyyy, mm, dd 
-* and returns it nicely formated as: dd HebrewMonthName yyyy 
-*
-*
-*********************************************************************/
-function util_formatHebrewDate(&$iyear, &$imonth, &$iday){
-
-if($imonth==''){
-
-return "Month is required";
-}else if($iday=='' ){
-return "Day is required";
-
-}else if($iyear==''){
-
-return "Year is required";
-}else{
-	$julian_date =  cal_to_jd ( CAL_JEWISH  ,  $imonth , $iday ,$iyear  );
-	$heb_month_name = jdmonthname($julian_date,4);
-   
-	$formated_hebrew_date = "$iday $heb_month_name $iyear" ;
- 	return $formated_hebrew_date ;
-}
-
-}
-
-
-
-/****************************************************************************
-*   This function takes a English date then returns the sunset time. 
-*
-*
-*
-******************************************************************************/
-function retrieve_sunset_or_candlelighting_times($iyear, $imonth, $iday, $sunset_or_candle){
+  /**
+   * This function takes a English date then returns the sunset time.
+   */
+  function retrieve_sunset_or_candlelighting_times($iyear, $imonth, $iday, $sunset_or_candle){
 
 if(strlen($iyear) < 1){
 	return 'Unknow year, cannot do sunset/candlelighting time';
@@ -497,40 +475,35 @@ $dao =& CRM_Core_DAO::executeQuery( $sql,   CRM_Core_DAO::$_nullArray ) ;
 	
 	
 	return $output_time_formated; 
-}
-
-
-
-/*****************************************************************************
-*
-* This function queries info from the CiviCRM database and returns 
-* the calculated Hebrew dates as an array.  
-******************************************************************************/
-function retrieve_hebrew_demographic_dates(&$cur_id_parm ){
-
-$record_found = false; 
-  
-require_once('utils/util_custom_fields.php');
-
-$custom_field_group_label = "Extended Date Information";
-$custom_field_birthdate_sunset_label = "Birth Date Before Sunset";
-$custom_field_deathdate_sunset_label = "Death Date Before Sunset" ;
-
-
-$customFieldLabels = array($custom_field_birthdate_sunset_label   , $custom_field_deathdate_sunset_label );
-$extended_date_table = "";
-$outCustomColumnNames = array();
-
-  try {
-    getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_date_table, $outCustomColumnNames ) ;
-
-    $extended_birth_date  =  $outCustomColumnNames[$custom_field_birthdate_sunset_label];
-    $extended_death_date  =  $outCustomColumnNames[$custom_field_deathdate_sunset_label];
   }
-  catch (Exception $e) {
-    $rtn_data["hebrew_date_of_birth"] = $e->getMessage();
-    return $rtn_data;
-  }
+
+  /**
+   * This function queries info from the CiviCRM database and returns 
+   * the calculated Hebrew dates as an array.
+   */
+  function retrieve_hebrew_demographic_dates(&$cur_id_parm) {
+    $record_found = false; 
+
+    require_once('utils/util_custom_fields.php');
+
+    $custom_field_group_label = "Extended Date Information";
+    $custom_field_birthdate_sunset_label = "Birth Date Before Sunset";
+    $custom_field_deathdate_sunset_label = "Death Date Before Sunset" ;
+
+    $customFieldLabels = array($custom_field_birthdate_sunset_label   , $custom_field_deathdate_sunset_label );
+    $extended_date_table = "";
+    $outCustomColumnNames = array();
+
+    try {
+      getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_date_table, $outCustomColumnNames ) ;
+
+      $extended_birth_date  =  $outCustomColumnNames[$custom_field_birthdate_sunset_label];
+      $extended_death_date  =  $outCustomColumnNames[$custom_field_deathdate_sunset_label];
+    }
+    catch (Exception $e) {
+      $rtn_data["hebrew_date_of_birth"] = $e->getMessage();
+      return $rtn_data;
+    }
 
 // fetch the details about the individual.
         $query = "
@@ -696,12 +669,10 @@ $outCustomColumnNames = array();
     return $normalized_tokens;
   }
 
-/*****************************************************************
-**  Prepare mail-merge tokens related to yahrzeits.
-**
-**
-*****************************************************************/
- function process_yahrzeit_tokens(&$values, &$contactIDs, $tokens = array(), $token_strings = array()) {
+/**
+ * Prepare mail-merge tokens related to yahrzeits.
+ */
+function process_yahrzeit_tokens(&$values, &$contactIDs, $tokens = array(), $token_strings = array()) {
    $tokens = self::normalize_tokens($tokens);
       
     //  yahrzeit_morning_format_english
@@ -1064,23 +1035,18 @@ $outCustomColumnNames = array();
             
             }
           }
-      
- }
-  	 $dao->free( );
-  	 
+  }
 
+  $dao->free();
 }
 
-/******************************************************************
-*
-*
-*
-*********************************************************************/
+/**
+ * TODO - document
+ */
 function util_get_hebrew_month_name( &$julian_date, &$hebrew_date){
+  list($hebrewMonth, $hebrewDay, $hebrewYear) = split('/',$hebrew_date);
 
-list($hebrewMonth, $hebrewDay, $hebrewYear) = split('/',$hebrew_date);
-
-	if( $hebrewMonth == '6' ){
+  if ($hebrewMonth == '6') {
 		/* Its Adar or AdarI */
 		/* Check if the 1st of Adar II is a valid day. If it is, then its a leap year. */
 		$tmp_adarII_month = '7';
@@ -1096,17 +1062,13 @@ list($hebrewMonth, $hebrewDay, $hebrewYear) = split('/',$hebrew_date);
 		/* Its not Adar, so just use the PHP function to get the month name. */
 		return jdmonthname($julian_date,4);
 	}
-
 }
 
-
-/******************************************************************
-*   Return true if the Hebrew year is a leap year. Otherwise
-* return false. 
-*
-*
-*********************************************************************/
-function is_hebrew_year_leap_year( $hebrewYear){
+/**
+ * Return true if the Hebrew year is a leap year. Otherwise
+ * return false. 
+ */
+function is_hebrew_year_leap_year($hebrewYear) {
 
 	/* Check if the 1st of Adar II is a valid day. If it is, then its a leap year. */
 		$tmp_adarII_month = '7';
@@ -1118,21 +1080,13 @@ function is_hebrew_year_leap_year( $hebrewYear){
 		}else{
 			return false;
 		}
-
-
-
-
-
-
 }
-/***************************************************************
-*  Get the current date from the server and return the 
-* formatted Hebrew Date. 
-*
-****************************************************************/
-function util_convert_today2hebrew_date(&$hebrew_format ){
 
-
+/**
+ * Get the current date from the server and return the 
+ * formatted Hebrew Date. 
+ */
+function util_convert_today2hebrew_date(&$hebrew_format) {
 	$today = date_create();
 
 	$gregorianMonth = $today->format('n');
@@ -1143,415 +1097,368 @@ function util_convert_today2hebrew_date(&$hebrew_format ){
 	$ibeforesunset = '1';
 	$today_hebrew_formated = self::util_convert2hebrew_date($gregorianYear, $gregorianMonth, $gregorianDay, $ibeforesunset, $hebrew_format); 
 	return $today_hebrew_formated;
-
-
 }
 
+/**
+ * TODO - document
+ */
+function util_get_bar_bat_mizvah_date(&$iyear, &$imonth, &$iday, &$ibeforesunset, &$erev_start_flag,  &$bar_bat_mitzvah_flag, &$gregorian_date_format) {
+  date_default_timezone_set('America/Chicago');
+  $heb_format_tmp = 'mm/dd/yy';
+  $birthdate_hebrew = self::util_convert2hebrew_date($iyear, $imonth, $iday, $ibeforesunset, $heb_format_tmp ); 
 
-/******************************************************************
-*
-*
-*
-*********************************************************************/
-function  util_get_bar_bat_mizvah_date(&$iyear, &$imonth, &$iday, &$ibeforesunset, &$erev_start_flag,  &$bar_bat_mitzvah_flag, &$gregorian_date_format  ){
+  //  birthdate_hebrew ( will be used for bar bat Mitzvah calculation: $birthdate_hebrew ;
 
-date_default_timezone_set('America/Chicago');
-$heb_format_tmp = 'mm/dd/yy';
-$birthdate_hebrew = self::util_convert2hebrew_date($iyear, $imonth, $iday, $ibeforesunset, $heb_format_tmp ); 
+  list($hebrewbirthMonth, $hebrewbirthDay, $hebrewbirthYear) = split('/',$birthdate_hebrew);
 
-//  birthdate_hebrew ( will be used for bar bat Mitzvah calculation: $birthdate_hebrew ;
+  $bar_bat_mitzvah_year = '';
 
-list($hebrewbirthMonth, $hebrewbirthDay, $hebrewbirthYear) = split('/',$birthdate_hebrew);
-
-$bar_bat_mitzvah_year = '';
-if(  $bar_bat_mitzvah_flag == 'bat'){
+  if ($bar_bat_mitzvah_flag == 'bat') {
         // Technically a girl can be done as early as 12, but most congregations wait until 13.
 	$bar_bat_mitzvah_year = $hebrewbirthYear + 13;
-}else if( $bar_bat_mitzvah_flag == 'bar'){
-	$bar_bat_mitzvah_year = $hebrewbirthYear + 13;
-}else{
-       return "bar_bat_mitzvah_flag must be either bar or bat. " ;
+  }
+  elseif ($bar_bat_mitzvah_flag == 'bar') {
+    $bar_bat_mitzvah_year = $hebrewbirthYear + 13;
+  }
+  else {
+    return "bar_bat_mitzvah_flag must be either bar or bat.";
+  }
+
+  $tmpformat = 'MM dd, yy sunset';
+  $bar_bat_gregorian_date  = self::util_convert_hebrew2gregorian_date($bar_bat_mitzvah_year, $hebrewbirthMonth, $hebrewbirthDay, $erev_start_flag, $tmpformat);
+
+  if ($bar_bat_gregorian_date ==  "Date requested does not exist.") {
+    $purpose = 'barbat';
+    $bar_bat_gregorian_date = self::util_adjust_hebrew_date($bar_bat_mitzvah_year, $hebrewbirthMonth, $hebrewbirthDay, $erev_start_flag, $tmpformat, $purpose);
+    $heb_date_is_adjusted = " (adjusted)";
+  }
+
+  return $bar_bat_gregorian_date;
 }
 
-$tmpformat = 'MM dd, yy sunset';
-$bar_bat_gregorian_date  = self::util_convert_hebrew2gregorian_date($bar_bat_mitzvah_year, $hebrewbirthMonth, $hebrewbirthDay, $erev_start_flag, $tmpformat);
+/**
+ * Adjusts an invalid Hebrew date to a valid one. For example: Kieslev 30 becomes Kieslev 29.
+ * Then converts the adjusted date to a Gregorian date. The Gregorian date is returned.
+ */
+function util_adjust_hebrew_date(&$ihyear, &$ihmonth, &$ihday, &$erev_start_flag, &$tmpformat, &$purpose) {
+  // Adjusting Hebrew date mm-dd-yyyy:   $ihmonth-$ihday-$ihyear;
+  $tmp_hday = $ihday;
+  $tmp_hmonth = $ihmonth;
 
-
-if($bar_bat_gregorian_date ==  "Date requested does not exist."  ){
-	$purpose = 'barbat';
-        $bar_bat_gregorian_date = self::util_adjust_hebrew_date($bar_bat_mitzvah_year, $hebrewbirthMonth, $hebrewbirthDay, $erev_start_flag, $tmpformat, $purpose);
-	$heb_date_is_adjusted = " (adjusted)";
-}
-
-return $bar_bat_gregorian_date;
-
-
-}
-
-/**********************************************************************************
-*  Adjusts an invalid Hebrew date to a valid one. For example: Kieslev 30 becomes Kieslev 29.
-*  Then converts the adjusted date to a Gregorian date. The Gregorian date is returned. 
-*
-***********************************************************************************/
-function util_adjust_hebrew_date(&$ihyear, &$ihmonth, &$ihday, &$erev_start_flag, &$tmpformat, &$purpose){
-
-// Adjusting Hebrew date mm-dd-yyyy:   $ihmonth-$ihday-$ihyear  ;
-
-$tmp_hday = $ihday;
-$tmp_hmonth = $ihmonth;
-
-
-if($ihmonth == '6' && $ihday == '30' ) {
+  if ($ihmonth == '6' && $ihday == '30') {
     // Original date was Adar I 30 , ie Rosh Hodesh Adar II during a leap year. This means move date back to Shevat 30, which is also Rosh Hodesh Adar.
     $tmp_hmonth = '5'; 
+  }
+  elseif ($ihmonth == '2' || $ihmonth == '3') {
+    if ($ihday == '30') {
+      $tmp_hday  = '29';
+    }
+  }
 
-}else if( $ihmonth == '2' || $ihmonth == '3'  ){
- if($ihday == '30'){
-    	$tmp_hday  = '29';
- }
-}
-
-/* If the month is Adar II , change it to Adar.  */
-if( $ihmonth == '7'){
+  /* If the month is Adar II , change it to Adar. */
+  if ($ihmonth == '7') {
      $tmp_hmonth = '6';
-}
-return self::util_convert_hebrew2gregorian_date($ihyear, $tmp_hmonth, $tmp_hday, $erev_start_flag, $tmpformat);
-}
+  }
 
+  return self::util_convert_hebrew2gregorian_date($ihyear, $tmp_hmonth, $tmp_hday, $erev_start_flag, $tmpformat);
+}
 
 /**********************************************************************************
 * Input is Gregorian date of death, plus if the death 
 *  occured before sunset or not. 
 * it returns the formatted Gregorian date of the yarhzeit. 
 ***********************************************************************************/
-function util_get_next_yahrzeit_date(&$iyear, &$imonth, &$iday, &$gregorian_ibeforesunset, $erev_start_flag, &$gregorian_format){
-	$next_flag = 'next'; 
-	return self::util_get_yahrzeit_date($next_flag, $iyear, $imonth, $iday, $gregorian_ibeforesunset, $erev_start_flag, $gregorian_format);
-
+function util_get_next_yahrzeit_date(&$iyear, &$imonth, &$iday, &$gregorian_ibeforesunset, $erev_start_flag, &$gregorian_format) {
+  $next_flag = 'next';
+  return self::util_get_yahrzeit_date($next_flag, $iyear, $imonth, $iday, $gregorian_ibeforesunset, $erev_start_flag, $gregorian_format);
 }
 
+  function util_get_yahrzeit_date($previous_next_flag, $iyear, $imonth, $iday, $gregorian_ibeforesunset, $erev_start_flag, $gregorian_format){
+    $defaultmsg = "Cannot determine yahrzeit date";
 
+    if ($iyear == '') {
+      return $defaultmsg." because year is blank";
+    }
+     
+    if ($imonth == '') {
+      return $defaultmsg." because month is blank";
+    }
 
-function util_get_yahrzeit_date($previous_next_flag , $iyear, $imonth, $iday, $gregorian_ibeforesunset, $erev_start_flag, $gregorian_format){
+    if ($iday == '') {
+      return $defaultmsg." because day is blank";
+    }
 
-   //print "<br>Inside util_get_yahrzeit_date";
-   // print " PARMS: flag: ".$previous_next_flag." iyear: ".$iyear." imonth: ".$imonth." iday: ".$iday; 
+    if ($gregorian_ibeforesunset == '') {
+      return $defaultmsg." because before sunset flag is blank";
+    }
 
-$defaultmsg = "Cannot determine yahrzeit date";
-   if($iyear == ''  ){
-     return $defaultmsg;
-   }
-   
-   if($imonth == ''  ){
-     return $defaultmsg;
-   }
+    // date_default_timezone_set('America/Chicago');
 
-   if($iday == ''  ){
-     return $defaultmsg;
-   }
+    $heb_date_is_adjusted = "";
+    $heb_format_tmp = 'mm/dd/yy';
+    $deathdate_hebrew = self::util_convert2hebrew_date($iyear, $imonth, $iday, $gregorian_ibeforesunset, $heb_format_tmp ); 
 
-   if($gregorian_ibeforesunset == ''){
-	return $defaultmsg;
-   }
+    list($hebrewdeathMonth, $hebrewdeathDay, $hebrewdeathYear) = split('/',$deathdate_hebrew);
 
-
-// date_default_timezone_set('America/Chicago');
-
-$heb_date_is_adjusted = "";
-$heb_format_tmp = 'mm/dd/yy';
-$deathdate_hebrew = self::util_convert2hebrew_date($iyear, $imonth, $iday, $gregorian_ibeforesunset, $heb_format_tmp ); 
-
-  //print "<br>Hebrew death date: ".$deathdate_hebrew; 
-
-list($hebrewdeathMonth, $hebrewdeathDay, $hebrewdeathYear) = split('/',$deathdate_hebrew);
-
-$heb_year_format = "yy";
-$current_hebrew_year = self::util_convert_today2hebrew_date($heb_year_format);
-
- // print "<br>cur Hebrew year: ".$current_hebrew_year; 
-
-# Get yahrzeit date for the current Hebrew year.
-$tmpformat = 'yyyy-mm-dd';
-$purpose = "yahrzeit";
-$current_year_yahrzetit  = self::util_convert_hebrew2gregorian_date($current_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat);
-
-  //  print "<br>cur year yahrzeit: ".$current_year_yahrzetit ; 
-
-if($current_year_yahrzetit ==  "Date requested does not exist."  ){
-        $current_year_yahrzetit = self::util_adjust_hebrew_date($current_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat, $purpose);
-	$heb_date_is_adjusted = " (adjusted)";
-        //print "  post-adjusted: ".$current_year_yahrzetit;
-	/*  return  "Date requested does not exist this year. Ask the Rabbi.";   */
-}else if ($current_year_yahrzetit == "Cannot determine Hebrew date" ){
-	return "Cannot determine Hebrew date for current year yahrzeit";
-}
-
-$correct_yarzheit = '';
-$yesterday =  date( mktime(0, 0, 0, date("m") , date("d") - 1, date("Y")));
-  $yesterday_formatted = date('M j Y',  $yesterday);
-
-  // print "<br>yesterday formatted: ".$yesterday_formatted;
- 
- //$today = date(); 
- //print "<br> ready to check flag";
- if( $previous_next_flag == 'next'){
-		if( strtotime($current_year_yahrzetit)  >= $yesterday  ){
-			// Current year yarhzeit: $current_year_yahrzetit  is equal to or later than yesterday: $yesterday. 
-			$correct_yarzheit = $current_year_yahrzetit;
-		
-		}else{
-		       // Current year yarhzeit has already past the date: $yesterday. Advance hebrew year by 1. 
-			$next_hebrew_year = $current_hebrew_year + 1;
-			$full_format = 'MM dd, yy sunset';
-			$heb_date_is_adjusted = "";
-			$next_year_yahrzetit  = self::util_convert_hebrew2gregorian_date($next_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat);
-			if($next_year_yahrzetit ==  "Date requested does not exist."  ){
-			
-			
-		        	$next_year_yahrzetit = self::util_adjust_hebrew_date($next_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat, $purpose);
-				$heb_date_is_adjusted = " (adjusted)";
-			}
-		
-		
-			$correct_yarzheit = $next_year_yahrzetit;
-		}
-	}else{
-          // print "<br>flag means get previous yahr.";
-	  // get previous yahrzeit. 
-		if( strtotime($current_year_yahrzetit)  < $yesterday  ){
-			// Current year yarhzeit: $current_year_yahrzetit  is before yesterday: $yesterday. 
-			$correct_yarzheit = $current_year_yahrzetit;
-		
-		}else{
-		       // Current hebrew year yarhzeit in the future:  Subtract 1 from hebrew year. 
-			$prev_hebrew_year = $current_hebrew_year - 1;
-			$full_format = 'MM dd, yy sunset';
-			$heb_date_is_adjusted = "";
-			$prev_year_yahrzetit  = self::util_convert_hebrew2gregorian_date($prev_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat);
-
-                       // print "<br><br>Just got prev. year yahrzeit: ".$prev_year_yahrzetit;
-			if($prev_year_yahrzetit ==  "Date requested does not exist."  ){
-			    
-			
-		        	$prev_year_yahrzetit = self::util_adjust_hebrew_date($prev_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat, $purpose);
-				$heb_date_is_adjusted = " (adjusted)";
-			}
-		
-		
-			$correct_yarzheit = $prev_year_yahrzetit;
-		}
-	
-	
-	}
-	
-       // print "<br><br><b>correct yahrzeit to return : </b> ".$correct_yarzheit; 		
+    $heb_year_format = "yy";
+    $current_hebrew_year = self::util_convert_today2hebrew_date($heb_year_format);
   
-$tmp_date = date_create($correct_yarzheit);
+    # Get yahrzeit date for the current Hebrew year.
+    $tmpformat = 'yyyy-mm-dd';
+    $purpose = "yahrzeit";
+    $current_year_yahrzetit  = self::util_convert_hebrew2gregorian_date($current_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat);
 
-if($tmp_date == ""){
- return "Cannot determine yahrzeit";
+    if ($current_year_yahrzetit == "Date requested does not exist.") {
+      $current_year_yahrzetit = self::util_adjust_hebrew_date($current_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat, $purpose);
+      $heb_date_is_adjusted = " (adjusted)";
 
-}
+      //print "  post-adjusted: ".$current_year_yahrzetit;
+      /*  return  "Date requested does not exist this year. Ask the Rabbi.";   */
+    }
+    elseif ($current_year_yahrzetit == "Cannot determine Hebrew date") {
+      return "Cannot determine Hebrew date for current year yahrzeit";
+    }
 
-$gregorianMonthName = $tmp_date->format('F');
-$gregorianDay = $tmp_date->format('j');
-$gregorianYear =$tmp_date->format('Y');
+    $correct_yarzheit = '';
+    $yesterday =  date( mktime(0, 0, 0, date("m") , date("d") - 1, date("Y")));
+    $yesterday_formatted = date('M j Y',  $yesterday);
 
+    //$today = date(); 
 
- 'yyyy-mm-dd';
-if( $gregorian_format == "MM dd, yyyy"){
-	$gregorianMonthName = $tmp_date->format('F');
-	$gregorianDay = $tmp_date->format('j');
-	$gregorianYear =$tmp_date->format('Y');
-	$yahrzeit_date_formatted  = "$gregorianMonthName $gregorianDay, $gregorianYear starting at sunset $heb_date_is_adjusted";
+    if ($previous_next_flag == 'next') {
+  		if( strtotime($current_year_yahrzetit)  >= $yesterday  ){
+  			// Current year yarhzeit: $current_year_yahrzetit  is equal to or later than yesterday: $yesterday. 
+  			$correct_yarzheit = $current_year_yahrzetit;
+  		
+  		}else{
+  		       // Current year yarhzeit has already past the date: $yesterday. Advance hebrew year by 1. 
+  			$next_hebrew_year = $current_hebrew_year + 1;
+  			$full_format = 'MM dd, yy sunset';
+  			$heb_date_is_adjusted = "";
+  			$next_year_yahrzetit  = self::util_convert_hebrew2gregorian_date($next_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat);
+  			if($next_year_yahrzetit ==  "Date requested does not exist."  ){
+  			
+  			
+  		        	$next_year_yahrzetit = self::util_adjust_hebrew_date($next_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat, $purpose);
+  				$heb_date_is_adjusted = " (adjusted)";
+  			}
+  		
+  		
+  			$correct_yarzheit = $next_year_yahrzetit;
+  		}
+    }
+    else {
+            // print "<br>flag means get previous yahr.";
+  	  // get previous yahrzeit. 
+  		if( strtotime($current_year_yahrzetit)  < $yesterday  ){
+  			// Current year yarhzeit: $current_year_yahrzetit  is before yesterday: $yesterday. 
+  			$correct_yarzheit = $current_year_yahrzetit;
+  		
+  		}else{
+  		       // Current hebrew year yarhzeit in the future:  Subtract 1 from hebrew year. 
+  			$prev_hebrew_year = $current_hebrew_year - 1;
+  			$full_format = 'MM dd, yy sunset';
+  			$heb_date_is_adjusted = "";
+  			$prev_year_yahrzetit  = self::util_convert_hebrew2gregorian_date($prev_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat);
 
-	return $yahrzeit_date_formatted ;
-}else if( $gregorian_format == "dd MM yyyy" ){
+                         // print "<br><br>Just got prev. year yahrzeit: ".$prev_year_yahrzetit;
+  			if($prev_year_yahrzetit ==  "Date requested does not exist."  ){
+  			    
+  			
+  		        	$prev_year_yahrzetit = self::util_adjust_hebrew_date($prev_hebrew_year, $hebrewdeathMonth, $hebrewdeathDay, $erev_start_flag, $tmpformat, $purpose);
+  				$heb_date_is_adjusted = " (adjusted)";
+  			}
+  		
+  		
+  			$correct_yarzheit = $prev_year_yahrzetit;
+  		}
+    }
 
-	$gregorianMonthName = $tmp_date->format('F');
-	$gregorianDay = $tmp_date->format('j');
-	$gregorianYear =$tmp_date->format('Y');
-	$yahrzeit_date_formatted  = "$gregorianDay $gregorianMonthName $gregorianYear starting at sunset $heb_date_is_adjusted";
+    $tmp_date = date_create($correct_yarzheit);
 
-	return $yahrzeit_date_formatted ;
+    if ($tmp_date == "") {
+      return "Cannot determine yahrzeit";
+    }
 
+    $gregorianMonthName = $tmp_date->format('F');
+    $gregorianDay = $tmp_date->format('j');
+    $gregorianYear =$tmp_date->format('Y');
 
-} else if($gregorian_format == "yyyy-mm-dd"){
-	$gregorianMonth = $tmp_date->format('m');
-	$gregorianDay = $tmp_date->format('d');
-	$gregorianYear =$tmp_date->format('Y');
-	$yahrzeit_date_formatted  ="$gregorianYear-$gregorianMonth-$gregorianDay";
-	return $yahrzeit_date_formatted ;
+    if ($gregorian_format == "MM dd, yyyy") {
+      $gregorianMonthName = $tmp_date->format('F');
+      $gregorianDay = $tmp_date->format('j');
+      $gregorianYear =$tmp_date->format('Y');
+      $yahrzeit_date_formatted  = "$gregorianMonthName $gregorianDay, $gregorianYear starting at sunset $heb_date_is_adjusted";
 
-}else{
-	return "unrecognized gregorian format: $gregorian_format";
-}
+      return $yahrzeit_date_formatted;
+    }
+    elseif ($gregorian_format == "dd MM yyyy") {
+      $gregorianMonthName = $tmp_date->format('F');
+      $gregorianDay = $tmp_date->format('j');
+      $gregorianYear =$tmp_date->format('Y');
+      $yahrzeit_date_formatted  = "$gregorianDay $gregorianMonthName $gregorianYear starting at sunset $heb_date_is_adjusted";
 
+      return $yahrzeit_date_formatted;
+    }
+    elseif ($gregorian_format == "yyyy-mm-dd") {
+      $gregorianMonth = $tmp_date->format('m');
+      $gregorianDay = $tmp_date->format('d');
+      $gregorianYear =$tmp_date->format('Y');
+      $yahrzeit_date_formatted  ="$gregorianYear-$gregorianMonth-$gregorianDay";
+      return $yahrzeit_date_formatted ;
+    }
+    else {
+      return "unrecognized gregorian format: $gregorian_format";
+    }
+  }
 
-}
+  /**
+   * This function verifies if the Hebrew date exists in reality. For example, 3 Hebrew months 
+   * are variable length months. Adar, Heshvan, and Kieslev have either 29 or 30 days depending on
+   * the year. The conversion from Julian to Hebrew ALWAYS produces a legit Hebrew date. The conversion from Hebrew to
+   * Julian is not always accurate. By going both ways and verifying the results match, we can be certain
+   * the Hebrew date is valid. 
+   * If valid date, return 1. Else return 0.
+   */
+  function verify_hebrew_date(&$hebyear , &$hebmonth, &$hebday){
+    if($hebyear == '' || $hebmonth == '' || $hebday == ''){
+      // verify_hebrew_date function error:  year, month and day are all required. 
+      return 0;
+    }
 
-/******************************************************************
-*
-*
-*
-*********************************************************************/
-function verify_hebrew_date(&$hebyear , &$hebmonth, &$hebday){
-/* This function verifies if the Hebrew date exists in reality. For example, 3 Hebrew months  */ 
-/* are variable length months. Adar, Heshvan, and Kieslev have either 29 or 30 days depending on */
-/* the year. The conversion from Julian to Hebrew ALWAYS produces a legit Hebrew date. The conversion from Hebrew to */
-/* Julian is not always accurate. By going both ways and verifying the results match, we can be certain */
-/* the Hebrew date is valid. 
-/* If valid date, return 1. Else return 0  */
+    $julian_datetmp =  cal_to_jd ( CAL_JEWISH  ,  $hebmonth , $hebday , $hebyear  );
+    $hebrewDate_tmp = jdtojewish($julian_datetmp);
 
+    list($hebrewMonth_tmp, $hebrewDay_tmp, $hebrewYear_tmp) = split('/',$hebrewDate_tmp);
+    // Hebrew date before: $hebmonth-$hebday-$hebyear / after round trip (mm-dd-yyyy): $hebrewMonth_tmp-$hebrewDay_tmp-$hebrewYear_tmp
 
-if($hebyear == '' || $hebmonth == '' || $hebday == ''){
-    // verify_hebrew_date function error:  year, month and day are all required. 
-   return 0;
-}
-$julian_datetmp =  cal_to_jd ( CAL_JEWISH  ,  $hebmonth , $hebday , $hebyear  );
+    // By: allen@joineryhq.com
+    // Date: 2016-08-02
+    // Re: https://pogstone.zendesk.com/agent/tickets/9289
+    //
+    // Per http://php.net/manual/en/function.jdtojewish.php#116453,
+    // jdtojewish() returns different values for Adar in non-leap-years,
+    // depending on PHP version:
+    //   phpversion() < 5.5: Adar returns as month 6
+    //   phpversion() >= 5.5: Adar returns as month 7
+    // Therefore, adjust 7 to 6 under relevant circumstances, for verifaction purposes.
+    static $phpversion;
+    if (!isset($phpversion)) {
+      $phpversion = phpversion();
+    }
 
-$hebrewDate_tmp = jdtojewish($julian_datetmp);
+    if ($hebmonth == "6" && $hebrewMonth_tmp == "7" && version_compare($phpversion, "5.5", ">=")) {
+      $hebrewMonth_tmp = "6";
+    }
 
-list($hebrewMonth_tmp, $hebrewDay_tmp, $hebrewYear_tmp) = split('/',$hebrewDate_tmp);
-// Hebrew date before: $hebmonth-$hebday-$hebyear / after round trip (mm-dd-yyyy): $hebrewMonth_tmp-$hebrewDay_tmp-$hebrewYear_tmp
+    if ($hebrewMonth_tmp == $hebmonth && $hebrewDay_tmp == $hebday && $hebrewYear_tmp == $hebyear) {
+      return 1;
+    }
+    else {
+      return 0;
+    }
+  }
 
-// By: allen@joineryhq.com
-// Date: 2016-08-02
-// Re: https://pogstone.zendesk.com/agent/tickets/9289
-//
-// Per http://php.net/manual/en/function.jdtojewish.php#116453,
-// jdtojewish() returns different values for Adar in non-leap-years,
-// depending on PHP version:
-//   phpversion() < 5.5: Adar returns as month 6
-//   phpversion() >= 5.5: Adar returns as month 7
-// Therefore, adjust 7 to 6 under relevant circumstances, for verifaction purposes.
-static $phpversion;
-if (!isset($phpversion)) {
-  $phpversion = phpversion();
-}
-if ($hebmonth == "6" && $hebrewMonth_tmp == "7" && version_compare($phpversion, "5.5", ">=")) {
-  $hebrewMonth_tmp = "6";
-}
-
-if( $hebrewMonth_tmp == $hebmonth && $hebrewDay_tmp == $hebday && $hebrewYear_tmp == $hebyear){
-   return 1;
-
-}else{
-   return 0;
-}
-
-
-}
-
-/******************************************************************
-*
-*
-*
-*********************************************************************/
-function util_convert2hebrew_date(&$iyear, &$imonth, &$iday, &$ibeforesunset, &$hebrewformat){
+  /**
+   * TODO - document
+   */
+  function util_convert2hebrew_date(&$iyear, &$imonth, &$iday, &$ibeforesunset, &$hebrewformat){
    
-   $defaultmsg = "Cannot determine Hebrew date";
-   if($iyear == ''  ){
-     return $defaultmsg." because year is blank";
-   }
+    $defaultmsg = "Cannot determine Hebrew date";
+    if($iyear == ''  ){
+      return $defaultmsg." because year is blank";
+    }
    
-   if($imonth == ''  ){
-     return $defaultmsg." because month is blank";
-   }
+    if($imonth == ''  ){
+      return $defaultmsg." because month is blank";
+    }
 
-   if($iday == ''  ){
-     return $defaultmsg." because day is blank";
-   }
+    if($iday == ''  ){
+      return $defaultmsg." because day is blank";
+    }
 
+    if($ibeforesunset == ''  ){
+      return $defaultmsg." because before sunset flag is blank";
+    }
 
-  if($ibeforesunset == ''  ){
-     return $defaultmsg." because before sunset flag is blank";
-   }
+    # date_default_timezone_set('Europe/London');
+    $idate_tmp = new DateTime("$iyear-$imonth-$iday");
 
+    $idate_str = $idate_tmp->format('F j, Y');
+    // Date provided: $idate_str  
 
+    $sunset_info_formated = '';
 
-
-   # date_default_timezone_set('Europe/London');
-$idate_tmp = new DateTime("$iyear-$imonth-$iday");
-
-$idate_str = $idate_tmp->format('F j, Y');
-// Date provided: $idate_str  
-
-$sunset_info_formated = '';
-if($ibeforesunset == "0"){
+    if ($ibeforesunset == "0") {
   	$tmpdate_unix = mktime(0, 0, 0,  $idate_tmp->format('m')  ,  $idate_tmp->format('d')+1,  $idate_tmp->format('Y'));
   	$tmpdate_array = getdate($tmpdate_unix );	
  
-
 	$gregorianMonth = $tmpdate_array['mon'];
 	$gregorianDay = $tmpdate_array['mday'];
 	$gregorianYear = $tmpdate_array['year'];
   	// After sunset, so added 1 day to Gregorian date. 
 	
 	$sunset_info_formated = '';
-
-}else if($ibeforesunset == "1"){
+    }
+    elseif($ibeforesunset == "1") {
 	$gregorianMonth = $idate_tmp->format('n');
 	$gregorianDay = $idate_tmp->format('j');
 	$gregorianYear = $idate_tmp->format('Y');
 
 	$sunset_info_formated = ' until sunset';
         // Before sunset, so no change to Gregorian date. 
-
-}else{
+    }
+    else {
 	return "Cannot determine Hebrew date because ibeforesunset is not 1 or 0.";
+    }
 
-}
+    // Date to convert to Hebrew date( mm-dd-yyyy) :  $gregorianMonth - $gregorianDay - $gregorianYear 
+    $jdDate = gregoriantojd($gregorianMonth,$gregorianDay,$gregorianYear);
 
-// Date to convert to Hebrew date( mm-dd-yyyy) :  $gregorianMonth - $gregorianDay - $gregorianYear 
-
-$jdDate = gregoriantojd($gregorianMonth,$gregorianDay,$gregorianYear);
-
-
-if($hebrewformat == 'mm/dd/yy'){
+    if ($hebrewformat == 'mm/dd/yy') {
 	$hebrewDate = jdtojewish($jdDate);
 	list($hebrewMonth, $hebrewDay, $hebrewYear) = split('/',$hebrewDate);
 	$hebrew_date_formated = "$hebrewMonth/$hebrewDay/$hebrewYear"; 
-}else if($hebrewformat == 'dd MM yy sunset'){
+    }
+    elseif ($hebrewformat == 'dd MM yy sunset') {
 	$hebrewDate = jdtojewish($jdDate);
 	list($hebrewMonth, $hebrewDay, $hebrewYear) = split('/',$hebrewDate);
 	$hebrewMonthName = self::util_get_hebrew_month_name($jdDate, $hebrewDate);
 	$hebrew_date_formated = "$hebrewDay  $hebrewMonthName  $hebrewYear $sunset_info_formated";
-}else if($hebrewformat == 'dd MM yy' || $hebrewformat == 'dd_MM_yy'){
+    }
+    elseif ($hebrewformat == 'dd MM yy' || $hebrewformat == 'dd_MM_yy') {
 	$hebrewDate = jdtojewish($jdDate);
 	list($hebrewMonth, $hebrewDay, $hebrewYear) = split('/',$hebrewDate);
 	$hebrewMonthName = self::util_get_hebrew_month_name($jdDate, $hebrewDate);
 	$hebrew_date_formated = "$hebrewDay $hebrewMonthName $hebrewYear";
-}else if($hebrewformat == 'dd MM' || $hebrewformat == 'dd_MM'  ){
+    }
+    elseif ($hebrewformat == 'dd MM' || $hebrewformat == 'dd_MM') {
 	$hebrewDate = jdtojewish($jdDate);
 	list($hebrewMonth, $hebrewDay, $hebrewYear) = split('/',$hebrewDate);
 	$hebrewMonthName = self::util_get_hebrew_month_name($jdDate, $hebrewDate);
 	$hebrew_date_formated = "$hebrewDay $hebrewMonthName";
-
-}else if($hebrewformat == 'yy'){
+    }
+    elseif ($hebrewformat == 'yy') {
 	$hebrewDate = jdtojewish($jdDate);
 	list($hebrewMonth, $hebrewDay, $hebrewYear) = split('/',$hebrewDate);
 	$hebrew_date_formated  = "$hebrewYear";
-}else if($hebrewformat == 'hebrew'){
+    }
+    elseif ($hebrewformat == 'hebrew') {
 	$hebrew_date_formated =  mb_convert_encoding( jdtojewish( $jdDate, true ), "UTF-8", "ISO-8859-8"); 
-}else{
+    }
+    else {
         $hebrew_date_formated = "Unrecognized Hebrew date format: $hebrewformat"; 
-}
+    }
 
+    // Hebrew Date formatted: $hebrew_date_formated 
+    return $hebrew_date_formated;
+  }
 
-
-// Hebrew Date formatted: $hebrew_date_formated 
-return $hebrew_date_formated;
-
-   }
-
-/******************************************************************
-* Input parm is the Hebrew date and desired format. The Gregorian
-* date is returned as a formated string.  
-*
-*
-*******************************************************************/
-function util_convert_hebrew2gregorian_date(&$iyear, &$imonth, &$iday, &$erev_start_flag, &$date_format){
+  /**
+   * Input parm is the Hebrew date and desired format. The Gregorian
+   * date is returned as a formated string.  
+   */
+  function util_convert_hebrew2gregorian_date(&$iyear, &$imonth, &$iday, &$erev_start_flag, &$date_format){
 
 if($imonth==''){
 
@@ -1599,8 +1506,6 @@ return "year is required";
 		return "Unknown erev_start_flag, must be either '1' or '0' ";
 	}
 
-
-
 	$formatted_date_str = '';
 	if($date_format == 'yyyy-mm-dd'){
 		$dash = "-";
@@ -1620,21 +1525,15 @@ return "year is required";
 	// function util_convert_hebrew2gregorian_date about to return: $formatted_date_str 
 	// print "<br>".$formatted_date_str."<br>";
 	return $formatted_date_str;
-   }
+    }
+  }
 
-}
+  public function get_sql_table_name() {
+    $yahrzeit_table_name = 'pogstone_temp_yahrzeits';
+    $tmp_table_name = $yahrzeit_table_name; 
 
-  
+    return $tmp_table_name;
 
-public function get_sql_table_name(){
-  
-    
-   $yahrzeit_table_name = 'pogstone_temp_yahrzeits';
-  
-   
-   $tmp_table_name = $yahrzeit_table_name; 
-
-   return $tmp_table_name;
 /*
    
    // check if table with this key already exists. 
@@ -1686,11 +1585,9 @@ public function get_sql_table_name(){
    
    return $tmp_table_name;
   */
-}
+  }
 
-
-public static function getSQLschema(){
-
+  public static function getSQLschema() {
 	$tmp_schema_name = ''; 
         $sql = "SELECT SCHEMA() as tmp_sname from civicrm_contact limit 0, 1" ;
         $dao =& CRM_Core_DAO::executeQuery( $sql ,   CRM_Core_DAO::$_nullArray ) ;
@@ -1704,16 +1601,14 @@ public static function getSQLschema(){
         $dao->free(); 
         // print "<br>About to return schema name: ".$tmp_schema_name; 
 	return $tmp_schema_name; 
-}
+  }
 
-private static function XXXCheckFreshnessTempTable($yahrzeit_table_name ){
+  private static function XXXCheckFreshnessTempTable($yahrzeit_table_name ){
 
 /*
    // Check if its been more than x minutes since last data load. 
    $tmp_minutes = self::YAHRZEIT_CACHE_TIMEOUT; 
    
-  
- 
  $sql_str = "SELECT min(TIMEDIFF(now(),created_date)) as time_diff from $yahrzeit_table_name
  having time_diff > '00:$tmp_minutes:00'
  order by time_diff ";
@@ -1759,32 +1654,18 @@ private static function XXXCheckFreshnessTempTable($yahrzeit_table_name ){
 
 */
   
-}
+  }
 
-
-private static function XXXremoveStaleRecords($yahrzeit_table_name, $tmp_limit){
-
- //  $sql_str = "DELETE from $yahrzeit_table_name where TIMEDIFF(now(),created_date) > '00:$tmp_limit:00'";
- //  $dao =& CRM_Core_DAO::executeQuery(  $sql_str ,   CRM_Core_DAO::$_nullArray ) ;
+  private static function XXXremoveStaleRecords($yahrzeit_table_name, $tmp_limit){
+    //  $sql_str = "DELETE from $yahrzeit_table_name where TIMEDIFF(now(),created_date) > '00:$tmp_limit:00'";
+    //  $dao =& CRM_Core_DAO::executeQuery(  $sql_str ,   CRM_Core_DAO::$_nullArray ) ;
   
-   // self::fillTempTable($yahrzeit_table_name, false); 
+    // self::fillTempTable($yahrzeit_table_name, false); 
+  }
 
-}
-
-
-    
-
-
-
-
-      
-
-
-function getYahrzeitDateEnglishObservance(&$deceased_year, &$deceased_month, &$deceased_day, &$previous_next_flag ){
-
+  function getYahrzeitDateEnglishObservance(&$deceased_year, &$deceased_month, &$deceased_day, &$previous_next_flag) {
 	$tmp_return = '';
 	$cur_year = date('Y');
-	
 	
 	if(strlen($deceased_year) > 0 && strlen($deceased_month) > 0 && strlen($deceased_day) > 0){
 		
@@ -1821,12 +1702,9 @@ function getYahrzeitDateEnglishObservance(&$deceased_year, &$deceased_month, &$d
 		
 	
 	return $tmp_return;  
-		
-		
-}
+  }
 
-
-function getYahrzeitDateEnglishObservanceFormated(&$deceased_year, &$deceased_month, &$deceased_day, &$previous_next_flag){
+  function getYahrzeitDateEnglishObservanceFormated(&$deceased_year, &$deceased_month, &$deceased_day, &$previous_next_flag){
 	$tmp_return = '';
 	$cur_year = date('Y');
 	
@@ -1860,11 +1738,6 @@ function getYahrzeitDateEnglishObservanceFormated(&$deceased_year, &$deceased_mo
 	$tmp_return = $tmp_yahrzeit_date_observe_english->format('F d, Y');
 		
 	return $tmp_return;  
-
-
-
-} 
-
-
+  } 
 
 }
