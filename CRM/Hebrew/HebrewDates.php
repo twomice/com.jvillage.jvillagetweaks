@@ -1359,7 +1359,25 @@ $julian_datetmp =  cal_to_jd ( CAL_JEWISH  ,  $hebmonth , $hebday , $hebyear  );
 $hebrewDate_tmp = jdtojewish($julian_datetmp);
 
 list($hebrewMonth_tmp, $hebrewDay_tmp, $hebrewYear_tmp) = split('/',$hebrewDate_tmp);
-// Hebrew date before: $hebmonth-$hebday-$hebyear / after round trip (mm-dd-yyyy): $hebrewMonth_tmp-$hebrewDay_tmp-$hebrewYear_tmp 
+// Hebrew date before: $hebmonth-$hebday-$hebyear / after round trip (mm-dd-yyyy): $hebrewMonth_tmp-$hebrewDay_tmp-$hebrewYear_tmp
+
+// By: allen@joineryhq.com
+// Date: 2016-08-02
+// Re: https://pogstone.zendesk.com/agent/tickets/9289
+//
+// Per http://php.net/manual/en/function.jdtojewish.php#116453,
+// jdtojewish() returns different values for Adar in non-leap-years,
+// depending on PHP version:
+//   phpversion() < 5.5: Adar returns as month 6
+//   phpversion() >= 5.5: Adar returns as month 7
+// Therefore, adjust 7 to 6 under relevant circumstances, for verifaction purposes.
+static $phpversion;
+if (!isset($phpversion)) {
+  $phpversion = phpversion();
+}
+if ($hebmonth == "6" && $hebrewMonth_tmp == "7" && version_compare($phpversion, "5.5", ">=")) {
+  $hebrewMonth_tmp = "6";
+}
 
 if( $hebrewMonth_tmp == $hebmonth && $hebrewDay_tmp == $hebday && $hebrewYear_tmp == $hebyear){
    return 1;
