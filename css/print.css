@@ -8,3 +8,49 @@
 .crm-container .crm-search-form table tr td:last-child > .crm-hover-button {
   display: none;
 }
+
+/**
+ * View transactions for an open batch (redmine:958)
+ */
+
+/* add borders to the summary table */
+.crm-container #BatchTransaction table#batch-summary {
+  width: 100%;
+}
+
+.crm-container #BatchTransaction table#batch-summary th {
+  background: #eee;
+}
+
+.crm-container #BatchTransaction table#batch-summary td {
+  border: 1px solid #999;
+}
+
+.crm-container #BatchTransaction table#batch-summary th:first-child {
+  border-radius: 5px 0 0 0;
+}
+.crm-container #BatchTransaction table#batch-summary th:last-child {
+  border-radius: 0 5px 0 0;
+}
+
+/* hide search criteria */
+.crm-container #BatchTransaction .crm-search-form-block .crm-batch_transaction_search-accordion {
+  display: none;
+}
+
+/* hide first col checkboxes, and last col action-links */
+.crm-container #BatchTransaction .crm-transaction-links,
+.crm-container #BatchTransaction .crm-transaction-checkbox {
+  display: none;
+}
+
+/* hide 'remove/assign transaction' action widgets */
+.crm-container #BatchTransaction select#trans_remove,
+.crm-container #BatchTransaction select#trans_assign {
+  display: none;
+}
+
+/* hide sort icon in table header */
+.crm-container #BatchTransaction .ui-icon-carat-2-n-s {
+  display: none;
+}

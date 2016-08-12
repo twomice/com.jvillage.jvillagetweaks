@@ -50,6 +50,7 @@
   <script src="{$config->resourceBase}/bower_components/jquery-validation/dist/jquery.validate.min.js"></script>
   <script src="{$config->resourceBase}/packages/jquery/plugins/jquery.blockUI.min.js"></script>
   <script src="{$config->resourceBase}/bower_components/datatables/media/js/jquery.dataTables.min.js"></script>
+  <script src="{$config->resourceBase}/packages/jquery/plugins/jquery.timeentry.min.js"></script>
   <script src="{$config->resourceBase}/js/Common.js"></script>
   <script src="{$config->resourceBase}/js/crm.ajax.js"></script>
 
