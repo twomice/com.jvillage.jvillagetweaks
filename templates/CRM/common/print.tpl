@@ -89,9 +89,15 @@
 
 
 {crmRegion name='page-footer' allowCmsOverride=0}
+  {literal}
   <script type="text/javascript">
-    window.print();
+    // redmine:958 comment 17: Chrome shows the 'print' dialog too quickly
+    // before Ajax data had time to load.
+    window.setTimeout(function() {
+      window.print();
+    }, 3000);
   </script>
+  {/literal}
 {/crmRegion}
 </div> {* end crm-container div *}
 </body>
