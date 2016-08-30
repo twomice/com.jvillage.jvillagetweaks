@@ -133,6 +133,7 @@ AND    p.entity_id    = e.id
     $form->add('select', 'event_id', ts('Event(s)'), $tmpEventIds, TRUE,
             array('id' => 'event_id', 'multiple' => 'multiple', 'title' => ts('-- select --'))
     );
+    $form->add('static', 'event_id_help', '', '<div class="help">When searching on multiple events, event-specific columns will contain values from only one of the events.</div>');
 
     if (count($this->_allChosenEvents) > 0) {
       $line_item_choices = self::getLineItemChoicesForEvents( );
@@ -198,9 +199,9 @@ AND    p.entity_id    = e.id
      * are part of the search criteria
      */
     if (count($this->_allChosenEvents) > 0) {
-      $form->assign('elements', array('event_id', 'lineitem_id', 'layout_choice', 'counted_choice', 'start_date', 'end_date', 'age_date', 'gender_choice', 'user_columns_to_display'));
+      $form->assign('elements', array('event_id', 'event_id_help', 'lineitem_id', 'layout_choice', 'counted_choice', 'start_date', 'end_date', 'age_date', 'gender_choice', 'user_columns_to_display'));
     } else {
-      $form->assign('elements', array('event_id', 'layout_choice', 'counted_choice', 'start_date', 'end_date', 'age_date', 'gender_choice', 'user_columns_to_display'));
+      $form->assign('elements', array('event_id', 'event_id_help', 'layout_choice', 'counted_choice', 'start_date', 'end_date', 'age_date', 'gender_choice', 'user_columns_to_display'));
     }
   }
 
