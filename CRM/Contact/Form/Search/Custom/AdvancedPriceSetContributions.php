@@ -1006,6 +1006,35 @@ sum(t1.actual_participant_count) as actual_participant_count, t1.label, t1.curre
     return $this->all($offset, $rowcount, $sort, false, true);
   }
 
+  /**
+   * This relies on a patch on core.
+   * If the prevnext cache is not filled in correctly, we cannot select only a few individuals
+   * in actions, such as create pdf letters.
+   */
+  function fillupPrevNextCacheSQL($start, $end, $sort, $cacheKey) {
+    $sql = $this->contactIDs($start, $end, $sort);
+
+    if ($this->_layoutChoice == 'detail') {
+      $insertSQL = "
+INSERT INTO civicrm_prevnext_cache (entity_table, entity_id1, entity_id2, cacheKey, data)
+SELECT DISTINCT 'civicrm_contact', contact_a.id as contact_id, contact_a.id as contact_id, '$cacheKey', contact_a.display_name
+";
+
+      // The 'select' segment is rather long, so using a regexp.
+      $sql = preg_replace("/^SELECT contact_a\.id as contact_id.* FROM /sm", '', $sql);
+      $sql = $insertSQL . ' FROM ' . $sql;
+
+      // Because the select field aliases are removed, sorting doesn't work.
+      // TODO: handle other fields too?
+      $sql = str_replace('ORDER BY `price_set_title`', 'ORDER BY pset.title', $sql);
+    }
+    else {
+      CRM_Core_Error::fatal('This operation is not available for the search filters you have selected (layout must be detail).');
+    }
+
+    return $sql;
+  }
+
   function templateFile() {
     return 'CRM/Contact/Form/Search/Custom.tpl';
   }
