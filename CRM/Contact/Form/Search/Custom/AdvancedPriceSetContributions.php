@@ -155,8 +155,6 @@ AND    p.entity_id    = e.id
          // 'lineitem_id'
          // li_pricefieldID_valueID = 'valueID'
 
-
-
          $layout_options = array();
       //   $layout_options['detail_broad'] = "Participant Detail (one row per participant, extra columns for each line item)";
           $layout_options['detail'] = "Contribution Line Item Detail (one row per line item)";
@@ -168,25 +166,16 @@ AND    p.entity_id    = e.id
                     $layout_options,
                     false );
 
-
-
-
-
     $this->util_get_all_column_names_to_display();
     $tmp_all_columns = $this->_all_column_names;
-
 
                 $form->add('select', 'user_columns_to_display', ts('Columns to Display'), $tmp_all_columns, FALSE,
           array('id' => 'user_columns_to_display', 'multiple' => 'multiple', 'title' => ts('-- select --'))
         );
 
               $form->addDate('start_date', ts('Contribution Date From'), false, array( 'formatType' => 'custom' ) );
-
         $form->addDate('end_date', ts('...Through'), false, array( 'formatType' => 'custom' ) );
-
-
           $form->addDate('age_date', ts('Age Based on Date'), false, array( 'formatType' => 'custom' ) );
-
 
         // Create filter on price set id
         $all_price_sets = array();
@@ -199,13 +188,12 @@ AND    p.entity_id    = e.id
      $all_price_sets[$ps_id_tmp] = $ps_title_tmp  ;
 
    }
-   $dao->free();
 
+   $dao->free();
 
                 $form->add('select', 'price_set_ids', ts('Price Sets'), $all_price_sets, FALSE,
           array('id' => 'price_set_ids', 'multiple' => 'multiple', 'title' => ts('-- select --'))
         );
-
 
         // Create filter on price set field value ids
         $all_price_set_values = array();
@@ -621,15 +609,10 @@ AND    p.entity_id    = e.id
              $cur_table_name = "li_".$priceset_field_id."_".$priceset_field_value_id;
             $cur_col_name = $cur_table_name.'_qty';
 
-
-
              $tmp_all_column_names[$cur_col_name] = $col_label;
-
-
-
            }
-           $li_names_dao->free();
 
+           $li_names_dao->free();
 
            // Add colums for each custom data field.
           $cf_names = $this->util_get_custom_field_name_list_for_display();
@@ -638,17 +621,10 @@ AND    p.entity_id    = e.id
                $tmp_all_column_names[$cur_col_name] = $cf_col_label;
 
                 next($cf_names);
+    }
 
-          }
-
-
-
-          $this->_all_column_names =   $tmp_all_column_names;
-           return $this->_all_column_names;
-
-
-            //   print "<br><br>All columns to display: ";
-            //   print_r( $this->_all_column_names );
+    $this->_all_column_names = $tmp_all_column_names;
+    return $this->_all_column_names;
   }
 
   function util_get_priceset_field_options($event_id_parm) {
@@ -685,67 +661,48 @@ sum(li.participant_count) as actual_participant_count, li.label, e.currency as c
   }
 
   function all($offset = 0, $rowcount = 0, $sort = null, $includeContactIDs = false,  $onlyIDs = false) {
+    $this->util_get_all_column_names_to_display();
+    $where = $this->where();
+    $ageDate = CRM_Utils_Date::processDate($this->_formValues['age_date']);
+    $tmp_full_sql = '';
 
+    if ($ageDate) {
+      $yyyy = substr( $ageDate , 0, 4);
+      $mm = substr( $ageDate , 4, 2);
+      $dd = substr( $ageDate , 6, 2);
 
-       $this->util_get_all_column_names_to_display();
+      $tmp = $yyyy."-".$mm."-".$dd ;
+      $age_cutoff_date =  "'".$tmp."'";
+    }
+    else {
+      $age_cutoff_date = "now()";
+    }
 
-       $tmp_full_sql = '';
-
-       $where = $this->where();
-
-
-        $ageDate = CRM_Utils_Date::processDate( $this->_formValues['age_date'] );
-      if ( $ageDate ) {
-        $yyyy = substr( $ageDate , 0, 4);
-        $mm = substr( $ageDate , 4, 2);
-        $dd = substr( $ageDate , 6, 2);
-
-        $tmp = $yyyy."-".$mm."-".$dd ;
-             $age_cutoff_date =  "'".$tmp."'";
-       }else{
-         $age_cutoff_date = "now()";
-
-       }
-
-         $tmp_age_calc = "((date_format($age_cutoff_date,'%Y') - date_format(contact_a.birth_date,'%Y')) -
+    $tmp_age_calc = "((date_format($age_cutoff_date,'%Y') - date_format(contact_a.birth_date,'%Y')) -
           (date_format($age_cutoff_date,'00-%m-%d') < date_format(contact_a.birth_date,'00-%m-%d'))) as age, ";
 
-
-       if ($this->_layoutChoice == 'summary'){
-         $grand_totals = true;
-        $totalSelect = " count( p.id  ) as rec_count,  pf.name as priceset_field_name, pf.label as priceset_field_label,
+    if ($this->_layoutChoice == 'summary') {
+      $grand_totals = true;
+      $totalSelect = " count( p.id  ) as rec_count,  pf.name as priceset_field_name, pf.label as priceset_field_label,
   sum(li.qty) as total_qty  , li.unit_price,  sum( li.line_total) as total_amount  ,
 li.participant_count, if ( pf.label <> li.label,  concat(pf.label, ' - ', li.label), li.label) as label ,e.currency as currency,
  e.title as event_title, e.start_date as event_start_date
  ";
 
+      $from = " FROM civicrm_participant p
+                LEFT JOIN civicrm_line_item li ON (p.id = li.entity_id AND li.entity_table = 'civicrm_participant')
+                LEFT JOIN civicrm_event e ON p.event_id = e.id
+                JOIN civicrm_contact contact_a on p.contact_id = contact_a.id
+                LEFT JOIN civicrm_price_field pf ON li.price_field_id = pf.id ";
 
-     $from = " FROM
-civicrm_participant p
-LEFT JOIN civicrm_line_item li ON p.id = li.entity_id
-AND li.entity_table = 'civicrm_participant'
-LEFT JOIN civicrm_event e ON p.event_id = e.id
-JOIN civicrm_contact contact_a on p.contact_id = contact_a.id
-LEFT JOIN civicrm_price_field pf ON li.price_field_id = pf.id ";
+      $where = $this->where();
+      $groupBy = " GROUP BY li.price_field_id, li.price_field_value_id,  e.title, e.start_date ";
 
-     $where = $this->where();
-     //$groupBy = "GROUP BY li.price_field_id, li.price_field_value_id , e.title, e.start_date";
-     $groupBy = " GROUP BY li.price_field_id, li.price_field_value_id,  e.title, e.start_date ";
-
-     $inner_sql = "select ".$totalSelect." ".$from." WHERE ".$where.$groupBy;
-
-     /* $tmp_full_sql =   $this->sql(  $totalSelect,
-                           $offset, $rowcount, $sort,
-                           $includeContactIDs, $groupBy );
-                           */
-
-       $tmp_full_sql  = "select ".$totalSelect.$from." WHERE ".$where.$groupBy;
-      // $tmp_full_sql = "select sum(t1.qty) as total_qty, sum(t1.line_total) as total_amount,  t1.* FROM ( ".$inner_sql."  ) as t1";
-        //   " GROUP BY t1.price_field_id, t1.price_field_value_id , t1.title, t1.start_date ";
-      //print "<br><br>summary sql:  ".$tmp_full_sql;
-
-       }else if ($this->_layoutChoice == 'detail'){
-        $selectClause = " contact_a.id            as contact_id  , p.id as participant_id, '' as participant_link,
+      $inner_sql = "select ".$totalSelect." ".$from." WHERE ".$where.$groupBy;
+      $tmp_full_sql  = "select ".$totalSelect.$from." WHERE ".$where.$groupBy;
+    }
+    else if ($this->_layoutChoice == 'detail') {
+        $selectClause = "contact_a.id as contact_id, p.id as participant_id, '' as participant_link,
 contact_a.sort_name   as display_name, contact_a.first_name, contact_a.last_name,
 civicrm_email.email as email, civicrm_phone.phone as phone, civicrm_address.street_address as street_address,
 civicrm_address.supplemental_address_1 as supplemental_address_1, civicrm_address.city as city ,civicrm_address.postal_code as postal_code,
@@ -762,15 +719,10 @@ date( main_contrib.receive_date ) as contrib_date,
 contrib_contact.sort_name as contrib_sort_name,
 li.entity_table as entity_type,
 main_contrib.source as contrib_source,
-fin_type.name as financial_type_name
- ";
+fin_type.name as financial_type_name ";
 
- // mt.name as membership_type, ms.label as membership_status, count(m.id) as num_memberships
-
-        $groupBy = " group by li.id";
-       $tmp_full_sql =  $this->sql( $selectClause,
-                           $offset, $rowcount, $sort,
-                           $includeContactIDs, $groupBy );
+      $groupBy = " group by li.id";
+      $tmp_full_sql = $this->sql($selectClause, $offset, $rowcount, $sort, $includeContactIDs, $groupBy);
     }
     else {
       print "<br><br>Unrecognized layout choice: ".$this->_layoutChoice;
@@ -780,18 +732,15 @@ fin_type.name as financial_type_name
   }
 
   function from() {
-    require_once ('utils/Entitlement.php');
-    $entitlement = new Entitlement();
-
     $financial_type_sql = " LEFT JOIN civicrm_financial_type fin_type ON li.financial_type_id = fin_type.id ";
 
-return " FROM
- civicrm_line_item li LEFT JOIN civicrm_participant p ON p.id = li.entity_id AND li.entity_table = 'civicrm_participant'
+    return " FROM civicrm_line_item li
+LEFT JOIN civicrm_participant p ON p.id = li.entity_id AND li.entity_table = 'civicrm_participant'
 LEFT JOIN civicrm_event e ON p.event_id = e.id
-Left  JOIN civicrm_participant p2 on p.registered_by_id = p2.id
+LEFT JOIN civicrm_participant p2 on p.registered_by_id = p2.id
 LEFT JOIN civicrm_contact contact_b on p2.contact_id = contact_b.id
-LefT JOIN civicrm_contact contact_a on p.contact_id = contact_a.id
-  left join civicrm_membership m on contact_a.id = m.contact_id
+LEFT JOIN civicrm_contact contact_a on p.contact_id = contact_a.id
+left join civicrm_membership m on contact_a.id = m.contact_id
 left join civicrm_membership_type mt on m.membership_type_id = mt.id
 left join civicrm_membership_status ms on m.status_id = ms.id
 left join civicrm_email on contact_a.id = civicrm_email.contact_id AND (civicrm_email.is_primary = 1 OR civicrm_email.email is null)
