@@ -749,6 +749,13 @@ LEFT JOIN civicrm_contribution_soft ON civicrm_contribution_soft.contribution_id
       }
     }
 
+    // Modify query, if appropriate, to support "card type" custom field as
+    // search criteria. This is only relevant (and only possible) if the
+    // com.pogstone.cardtypehelper extension is installed.
+    if (is_callable('CRM_Cardtypehelper_TxnBatchCustom::alterQuery')) {
+      CRM_Cardtypehelper_TxnBatchCustom::alterQuery($params, $from, $where);
+    }
+
     $sql = "
 SELECT {$select}
 FROM   {$from}
