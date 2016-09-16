@@ -20,12 +20,10 @@
  *
  */
 
-require_once 'CRM/Contact/Form/Search/Interface.php';
-
 class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends CRM_Contact_Form_Search_Custom_Base implements CRM_Contact_Form_Search_Interface {
-    protected $_formValues;
+  protected $_formValues;
 
-    function __construct( &$formValues ) {
+  function __construct(&$formValues) {
       $this->_formValues = $formValues;
       $summarize_by =  $this->_formValues['summarize_by'];
 
@@ -73,9 +71,9 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
 
         // contr.source as contrib_source, contr.check_number as check_number, contr.trxn_id as contrib_transaction_id
       }
-    }
+  }
 
-    function buildForm(&$form) {
+  function buildForm(&$form) {
         /**
          * You can define a custom title for the search form
          */
@@ -96,17 +94,13 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
         $form->addDate('start_date', ts('Contribution Date From'), false, array( 'formatType' => 'custom' ) );
         $form->addDate('end_date', ts('...through'), false, array( 'formatType' => 'custom' ) );
 
-
         // Batch ID range
-         $form->add ( 'text', 'start_batch_id', ts('Legacy Batch ID from'));
-
-         $form->add ( 'text', 'end_batch_id', ts('...Legacy Batch ID through'));
+         $form->add('text', 'start_batch_id', ts('Legacy Batch ID from'));
+         $form->add('text', 'end_batch_id', ts('...Legacy Batch ID through'));
 
        // Deposit ID range
-        $form->add ( 'text', 'start_deposit_id', ts('Legacy Deposit ID from'));
-
-         $form->add ( 'text', 'end_deposit_id', ts('...Legacy Deposit ID through'));
-
+        $form->add('text', 'start_deposit_id', ts('Legacy Deposit ID from'));
+        $form->add('text', 'end_deposit_id', ts('...Legacy Deposit ID through'));
 
         $summary_array = array();
         $summary_array['daily'] = "Day, Financial Type, Project, Payment Instrument";
@@ -124,10 +118,6 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
         $summary_array['batch,pi'] = "Legacy Batch ID, Payment Instrument";
         $summary_array['details'] = "All Details - No Summary";
 
-
-
-
-
         $form->addElement('select', 'summarize_by', ts('Summarize By'),  $summary_array);
 
         require_once( 'utils/finance/FinancialCategory.php') ;
@@ -140,20 +130,18 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
 
        /*
          $tmp_select = $form->addElement('select', 'financial_category', ts('Financial Category'), $tmpFinCatArray);
-
          $tmp_select->setMultiple(true);
        */
+
         $form->add( 'select', 'financial_category', ts('Financial Sets'), $tmpFinCatArray, FALSE,
           array('id' => 'financial_category', 'multiple' => 'multiple', 'title' => ts('-- select --'))
         );
-
 
      //   $contrib_type_choices = array( ''   => ' - select contribution types - ' );
      //   $accounting_code_choices = array( ''   => ' - select accounting codes - ' );
 
         $contrib_type_choices = array();
 	$accounting_code_choices = array();
-
 
         require_once('utils/finance/Prepayment.php');
         $tmpPrepayment = new Prepayment();
@@ -165,21 +153,17 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
                LEFT JOIN civicrm_financial_account fa ON far.financial_account_id = fa.id
                WHERE ct.is_active = 1 ".$tmp_exlude_prepayment_sql." order by ct.name";
 
-        // print "<br>sql: ".$contrib_type_sql;
-        $contrib_dao = & CRM_Core_DAO::executeQuery( $contrib_type_sql, CRM_Core_DAO::$_nullArray );
+        $contrib_dao = CRM_Core_DAO::executeQuery($contrib_type_sql);
 
-         while ($contrib_dao->fetch()){
-
+         while ($contrib_dao->fetch()) {
               $cur_id = $contrib_dao->id;
               $cur_name = $contrib_dao->name;
               $accounting_code = $contrib_dao->accounting_code;
-            // $accounting_code = "";
 
               $pos_a = strpos($cur_name, 'adjustment-');
              // $pos_b = strpos($cur_name, 'prepayment-');
 
            if ($pos_a === false ) {
-
                 if (strlen($accounting_code) > 0) {
                     $tmp_description = $cur_name." - ".$accounting_code;
                     $accounting_code_choices[$accounting_code] = $accounting_code;
@@ -189,7 +173,6 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
                 }
 
                 $contrib_type_choices[$cur_id] = $tmp_description;
-
            }
          }
 
@@ -218,8 +201,6 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
 
          $tmp_pi = $results_pi_tmp['values'];
 
-
-
          foreach($tmp_pi as $cur){
            $payment_instrument_choices[$cur['value']] = $cur['label'];
          }
@@ -228,12 +209,6 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
          $form->add('select', 'payment_instruments', ts('Payment Instruments'),  $payment_instrument_choices, FALSE,
           array('id' => 'payment_instruments', 'multiple' => 'multiple', 'title' => ts('-- select --'))
         );
-
-
-
-
-
-
 
       /**
        * If you are using the sample template, this array tells the template fields to render
@@ -245,15 +220,11 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
   /**
    * Define the smarty template used to layout the search form and results listings.
    */
-  function templateFile( ) {
-    //return 'CRM/Contact/Form/Search/Custom.tpl';
+  function templateFile() {
     return 'CRM/Contact/Form/Search/ContributionSummary.tpl';
   }
 
   function prepare_sql_string($includeContactIDs = false, $onlyIDs = false) {
-    require_once ('utils/Entitlement.php');
-    $entitlement = new Entitlement();
-
     // check authority of end-user
     require_once 'utils/util_money.php';
     if ( pogstone_is_user_authorized('access CiviContribute') == false ){
@@ -424,8 +395,8 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
         $tmp_groupby_date = "GROUP BY contr.currency, eci.".$deposit_sql_name.",  contr.payment_instrument_id ";
         $tmp_refund_groupby_date = "GROUP BY contr.currency, eci.".$deposit_sql_name.",  contr.payment_instrument_id ";
 
-
-      }else if($summarize_by == 'batch,pi'){
+      }
+      elseif ($summarize_by == 'batch,pi') {
         $tmp_select_date = "ov.label as pay_type_label, concat(min(contr.receive_date) , '-', max(contr.receive_date) ) as date,
         '' as campaign_title, '' as campaign_external_id,
          group_concat(distinct ct.name) as contribution_type_name,   '' as financial_category,  group_concat( distinct ct.description) as financial_description,  '' as deposit_id, eci.".$batch_sql_name." as batch_id, ";
@@ -436,7 +407,7 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
         $tmp_groupby_date = "GROUP BY contr.currency, eci.".$batch_sql_name.", contr.payment_instrument_id ";
         $tmp_refund_groupby_date = "GROUP BY contr.currency, eci.".$batch_sql_name.", contr.payment_instrument_id ";
       }
-      else if($summarize_by == 'details') {
+      elseif($summarize_by == 'details') {
         $tmp_select_date = "ov.label as pay_type_label, date(contr.receive_date) as date,
         campaign.title as campaign_title, campaign.external_identifier as campaign_external_id,
          ct.name as contribution_type_name,  ".$acct_code.",   ".$financial_category_field_sql." ct.description as financial_description, '' as deposit_id, eci.".$batch_sql_name." as batch_id, ";
@@ -465,20 +436,19 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
       }
     }
 
-    $from  = $this->from( );
+    $from  = $this->from();
+    $where = $this->where_fancy($includeContactIDs);
 
-    $where = $this->where_fancy( $includeContactIDs );
-
-    $refund_where = $this->where_fancy( $includeContactIDs, 'only_refunds' );
+    $refund_where = $this->where_fancy($includeContactIDs, 'only_refunds');
 
      $groupby  = $tmp_groupby_date ;   // needs alternative version for refunds.
    // $groupby = "contr.currency, ".$tmp_groupby_date." ct.name, contr.campaign_id, contr.payment_instrument_id";
-
 
     /* civicrm_line_item li JOIN civicrm_participant part ON li.entity_id = part.id AND li.entity_table =  'civicrm_participant'
        JOIN civicrm_participant_payment ep ON ifnull( part.registered_by_id, part.id) = ep.participant_id
        join civicrm_contribution c ON  ep.contribution_id = c.id
      */
+
     $non_event_contrib_sql =    "
     SELECT $select
     FROM   $from
@@ -505,7 +475,6 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
     WHERE $where
     $groupby ";
 
-    //print "<br><br>event sql : ".$event_contrib_sql;
     $sql  = "( $non_event_contrib_sql )
                 UNION ALL /* EVENTCONTRIB */ ( $event_contrib_sql)
         UNION ALL /* NONEVENTCONTRIBREFUDS */ ( $non_event_contrib_refunds_sql )
@@ -543,20 +512,17 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
     return $sql;
   }
 
-  function recurring_from(){
+  function recurring_from() {
+    $custom_field_group_label = "Extra Contribution Info";
+    $custom_field_deposit_label = "Deposit id";
+    $custom_field_batch_label = "Batch id";
 
+    $customFieldLabels = array($custom_field_deposit_label, $custom_field_batch_label);
+    $extended_contrib_table = "";
+    $outCustomColumnNames = array();
 
-  	$custom_field_group_label = "Extra Contribution Info";
-	$custom_field_deposit_label = "Deposit id";
-	$custom_field_batch_label = "Batch id" ;
-
-
-$customFieldLabels = array($custom_field_deposit_label   , $custom_field_batch_label );
-$extended_contrib_table = "";
-$outCustomColumnNames = array();
-
-require_once('utils/util_custom_fields.php');
-getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
+    require_once('utils/util_custom_fields.php');
+    getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames);
 
     $tmp_first_contrib = " select contrib.id , contrib.contact_id ,contrib.source, contrib.currency,
    contrib.contribution_status_id,   contrib.contribution_recur_id , contrib.receive_date, contrib.total_amount, contrib.is_test
@@ -580,11 +546,10 @@ getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extende
 		LEFT JOIN ".$extended_contrib_table." eci ON contr.id = eci.entity_id
 		";
 
-
     return $tmp_from;
   }
 
-  function from( ) {
+  function from() {
     $custom_field_group_label = "Extra Contribution Info";
     $custom_field_deposit_label = "Deposit id";
     $custom_field_batch_label = "Batch id" ;
@@ -609,26 +574,21 @@ getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extende
         LEFT JOIN ".$extended_contrib_table." eci ON contr.id = eci.entity_id
     ";
 
-   return $tmp_from;
-
-// LEFT JOIN civicrm_option_group og ON ov.option_group_id = og.id  AND (og.name is NULL OR og.name = 'payment_instrument')
-
+    return $tmp_from;
   }
 
-  function participant_from(){
-  // version 4.3 specific function
-  	$custom_field_group_label = "Extra Contribution Info";
-	$custom_field_deposit_label = "Deposit id";
-	$custom_field_batch_label = "Batch id" ;
+  function participant_from() {
+    // version 4.3 specific function
+    $custom_field_group_label = "Extra Contribution Info";
+    $custom_field_deposit_label = "Deposit id";
+    $custom_field_batch_label = "Batch id";
 
+    $customFieldLabels = array($custom_field_deposit_label   , $custom_field_batch_label );
+    $extended_contrib_table = "";
+    $outCustomColumnNames = array();
 
-$customFieldLabels = array($custom_field_deposit_label   , $custom_field_batch_label );
-$extended_contrib_table = "";
-$outCustomColumnNames = array();
-
-require_once('utils/util_custom_fields.php');
-getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
-
+    require_once('utils/util_custom_fields.php');
+    getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
 
     /*
     Select ct.id, ct.name, fa.accounting_code as accounting_code from civicrm_financial_type ct
@@ -656,50 +616,45 @@ getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extende
     LEFT JOIN ".$extended_contrib_table." eci ON contr.id = eci.entity_id
     ";
 
-
    return $tmp_from;
   }
 
+  function where($includeContactIDs = false) {
+    return where_fancy($includeContactIDs);
+  }
 
-function where( $includeContactIDs = false ) {
-   return where_fancy( $includeContactIDs );
-}
- /*
-  * WHERE clause is an array built from any required JOINS plus conditional filters based on search criteria field values
-  *
-  */
-function where_fancy( $includeContactIDs = false, $refund_parm ) {
-    $clauses = array( );
+  /**
+   * WHERE clause is an array built from any required JOINS plus conditional filters based on search criteria field values
+   */
+  function where_fancy($includeContactIDs = false, $refund_parm) {
+    $clauses = array();
 
     $clauses[] = "contr.is_test <> 1";  // Not a test transaction
-    if( $refund_parm == 'only_refunds'){
-      $clauses[] = "contr.contribution_status_id = 7   ";
 
-    }else{
-      $clauses[] = "contr.contribution_status_id IN ( 1, 7 )  "; // contribution is complete or refunded
+    if ($refund_parm == 'only_refunds') {
+      $clauses[] = "contr.contribution_status_id = 7   ";
     }
+    else {
+      // contribution is complete or refunded
+      $clauses[] = "contr.contribution_status_id IN (1, 7) ";
+    }
+
     $clauses[] = "contr.total_amount <> 0";
     $clauses[] = "ct.id is not null ";
 
+    $custom_field_group_label = "Extra Contribution Info";
+    $custom_field_deposit_label = "Deposit id";
+    $custom_field_batch_label = "Batch id" ;
 
+    $customFieldLabels = array($custom_field_deposit_label, $custom_field_batch_label);
+    $extended_contrib_table = "";
+    $outCustomColumnNames = array();
 
+    require_once('utils/util_custom_fields.php');
+    getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames);
 
-  $custom_field_group_label = "Extra Contribution Info";
-  $custom_field_deposit_label = "Deposit id";
-  $custom_field_batch_label = "Batch id" ;
-
-
-$customFieldLabels = array($custom_field_deposit_label   , $custom_field_batch_label );
-$extended_contrib_table = "";
-$outCustomColumnNames = array();
-
-require_once('utils/util_custom_fields.php');
-getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $extended_contrib_table, $outCustomColumnNames ) ;
-
-$deposit_sql_name  =  $outCustomColumnNames[$custom_field_deposit_label];
-$batch_sql_name  =  $outCustomColumnNames[$custom_field_batch_label];
-
-
+    $deposit_sql_name  =  $outCustomColumnNames[$custom_field_deposit_label];
+    $batch_sql_name  =  $outCustomColumnNames[$custom_field_batch_label];
 
  	// get batch id start and end values.
  	$start_batch_id =  $this->_formValues['start_batch_id'];
@@ -724,9 +679,6 @@ $batch_sql_name  =  $outCustomColumnNames[$custom_field_batch_label];
  		$clauses[] = "eci.".$deposit_sql_name."  <= ".$end_deposit_id;
  	}
 
-
-
-
     $startDate = CRM_Utils_Date::processDate( $this->_formValues['start_date'] );
      if ( $startDate ) {
          $clauses[] = "date(contr.receive_date) >= date($startDate)";
@@ -747,10 +699,7 @@ $batch_sql_name  =  $outCustomColumnNames[$custom_field_batch_label];
 
      if(strlen($tmp_fc) > 0 ){
        $clauses[] = $tmp_fc;
-
-       //print "<br><br> financial categories sql: ".$tmp_fc;
      }
-
 
      $contrib_type_ids = $this->_formValues['contrib_type'] ;
 
@@ -855,41 +804,38 @@ $batch_sql_name  =  $outCustomColumnNames[$custom_field_batch_label];
              //print_r ($clauses);
 
            }
-
-
        }
 
         $where_clause = implode( ' AND ', $clauses );
 
         return $where_clause;
+  }
+
+  /**
+   * Functions below generally don't need to be modified
+   */
+  function count() {
+    $sql = $this->all();
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    return $dao->N;
+  }
+
+  function contactIDs($offset = 0, $rowcount = 0, $sort = null) {
+    return $this->all($offset, $rowcount, $sort, false, true);
+  }
+
+  function &columns() {
+    return $this->_columns;
+  }
+
+  function setTitle($title) {
+    if ($title) {
+      CRM_Utils_System::setTitle( $title );
     }
-
-    /*
-     * Functions below generally don't need to be modified
-     */
-    function count( ) {
-           $sql = $this->all( );
-
-           $dao = CRM_Core_DAO::executeQuery( $sql,
-                                             CRM_Core_DAO::$_nullArray );
-           return $dao->N;
+    else {
+      CRM_Utils_System::setTitle(ts('Search'));
     }
-
-    function contactIDs( $offset = 0, $rowcount = 0, $sort = null) {
-        return $this->all( $offset, $rowcount, $sort, false, true );
-    }
-
-    function &columns( ) {
-        return $this->_columns;
-    }
-
-   function setTitle( $title ) {
-       if ( $title ) {
-           CRM_Utils_System::setTitle( $title );
-       } else {
-           CRM_Utils_System::setTitle(ts('Search'));
-       }
-   }
+  }
 
   function summary() {
     require_once 'utils/util_money.php';
