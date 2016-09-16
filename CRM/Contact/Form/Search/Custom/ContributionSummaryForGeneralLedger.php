@@ -768,47 +768,37 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
            }
     	}
 
+    /* Get payment instrument */
+    // 'payment_instruments'
+    $payment_instruments = $this->_formValues['payment_instruments'] ;
 
-
-    	 /* Get payment instrument */
-    	 //'payment_instruments'
-    	 $payment_instruments = $this->_formValues['payment_instruments'] ;
-
-         if( ! is_array($payment_instruments)){
-
+    if( ! is_array($payment_instruments)){
            //print "<br>No payment instrument selected.";
+    }
+    elseif (is_array($payment_instruments)) {
+      $i = 1;
+      $tmp_id_list = '';
 
-         }else if(is_array($payment_instruments)) {
-           //print "<br>accounting codes: ";
-           //print_r($accounting_codes);
-           $i = 1;
-           $tmp_id_list = '';
+      foreach($payment_instruments as $cur_id) {
+        if (strlen($cur_id ) > 0) {
+          $tmp_id_list = $tmp_id_list." '".$cur_id."'";
 
-           foreach($payment_instruments as $cur_id){
-             if(strlen($cur_id ) > 0){
-               $tmp_id_list = $tmp_id_list." '".$cur_id."'" ;
+          if ($i < sizeof($payment_instruments)) {
+            $tmp_id_list = $tmp_id_list . ",";
+          }
+        }
 
+        $i += 1;
+      }
 
-               if($i < sizeof($payment_instruments)){
-                 $tmp_id_list = $tmp_id_list."," ;
-               }
-             }
-             $i += 1;
-           }
+      if (!(empty($tmp_id_list))) {
+        $clauses[] = "contr.payment_instrument_id IN ( ".$tmp_id_list." ) ";
+      }
+    }
 
+    $where_clause = implode( ' AND ', $clauses );
 
-           if(!(empty($tmp_id_list))  ){
-             //print "<br><br>id list: ".$tmp_id_list;
-             $clauses[] = "contr.payment_instrument_id IN ( ".$tmp_id_list." ) ";
-             //print "<br>";
-             //print_r ($clauses);
-
-           }
-       }
-
-        $where_clause = implode( ' AND ', $clauses );
-
-        return $where_clause;
+    return $where_clause;
   }
 
   /**
