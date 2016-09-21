@@ -364,6 +364,11 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
     // Define ORDER BY for query in $sort, with default value
     if ( ! empty($sort)) {
       if (is_string($sort)) {
+        // redmine:992 When printing PDF letters, sort by name.
+        if ($onlyIDs && $sort == 'contact_id') {
+          $sort = 'sort_name';
+        }
+
         $sql .= " ORDER BY $sort ";
       }
       else {
@@ -831,16 +836,38 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
    * Functions below generally don't need to be modified
    */
   function count() {
-           $sql = $this->all( );
-         //  print "<br><br>sql : ".$sql;
-           $dao = CRM_Core_DAO::executeQuery( $sql,
-                                             CRM_Core_DAO::$_nullArray );
-           return $dao->N;
+    $sql = $this->all();
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    return $dao->N;
   }
 
   function contactIDs( $offset = 0, $rowcount = 0, $sort = null) {
     return $this->all( $offset, $rowcount, $sort, false, true );
   }
+
+  /**
+   * This relies on a patch on core.
+   * If the prevnext cache is not filled in correctly, we cannot select only a few individuals
+   * in actions, such as create pdf letters.
+   */
+/*
+  function fillupPrevNextCacheSQL($start, $end, $sort, $cacheKey) {
+    $sql = $this->contactIDs($start, $end, $sort);
+
+// SELECT contact_b.*,  phone.phone, email.email, addr.street_address, addr.city,st.name as state,  addr.postal_code, country.name as country
+
+    $replaceSQL = "SELECT contact_b.*,  phone.phone, email.email, addr.street_address, addr.city,st.name as state,  addr.postal_code, country.name as country";
+    $insertSQL = "
+INSERT INTO civicrm_prevnext_cache (entity_table, entity_id1, entity_id2, cacheKey, data)
+SELECT DISTINCT 'civicrm_contact', contact_b.id, contact_b.id, '$cacheKey', contact_b.display_name
+";
+
+    $sql = str_replace($replaceSQL, $insertSQL, $sql);
+Civi::log()->warning('REPLACE = ' . $sql);
+
+    return $sql;
+  }
+*/
 
   function &columns() {
     return $this->_columns;
