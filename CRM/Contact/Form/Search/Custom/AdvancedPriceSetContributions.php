@@ -702,7 +702,7 @@ li.participant_count, if ( pf.label <> li.label,  concat(pf.label, ' - ', li.lab
       $tmp_full_sql  = "select ".$totalSelect.$from." WHERE ".$where.$groupBy;
     }
     else if ($this->_layoutChoice == 'detail') {
-        $selectClause = "contact_a.id as contact_id, p.id as participant_id, '' as participant_link,
+        $selectClause = "p.id as participant_id, '' as participant_link,
 contact_a.sort_name   as display_name, contact_a.first_name, contact_a.last_name,
 civicrm_email.email as email, civicrm_phone.phone as phone, civicrm_address.street_address as street_address,
 civicrm_address.supplemental_address_1 as supplemental_address_1, civicrm_address.city as city ,civicrm_address.postal_code as postal_code,
@@ -715,6 +715,7 @@ mt.name as membership_type, ms.label as membership_status,
 pset.id as price_set_id , pset.title as price_set_title,
 main_contrib.id as contrib_id,
 main_contrib.contact_id as contrib_contact_id ,
+main_contrib.contact_id as contact_id ,
 date( main_contrib.receive_date ) as contrib_date,
 contrib_contact.sort_name as contrib_sort_name,
 li.entity_table as entity_type,
@@ -739,21 +740,21 @@ LEFT JOIN civicrm_participant p ON p.id = li.entity_id AND li.entity_table = 'ci
 LEFT JOIN civicrm_event e ON p.event_id = e.id
 LEFT JOIN civicrm_participant p2 on p.registered_by_id = p2.id
 LEFT JOIN civicrm_contact contact_b on p2.contact_id = contact_b.id
-LEFT JOIN civicrm_contact contact_a on p.contact_id = contact_a.id
-left join civicrm_membership m on contact_a.id = m.contact_id
-left join civicrm_membership_type mt on m.membership_type_id = mt.id
-left join civicrm_membership_status ms on m.status_id = ms.id
-left join civicrm_email on contact_a.id = civicrm_email.contact_id AND (civicrm_email.is_primary = 1 OR civicrm_email.email is null)
-left join civicrm_phone on contact_a.id = civicrm_phone.contact_id  AND (civicrm_phone.is_primary = 1 OR civicrm_phone.phone is null)
-left join civicrm_address on contact_a.id = civicrm_address.contact_id AND (civicrm_address.is_primary = 1 OR civicrm_address.street_address is null)
-left join civicrm_state_province on civicrm_address.state_province_id = civicrm_state_province.id AND (civicrm_state_province.abbreviation like '%' or civicrm_state_province.abbreviation is null)
 LEFT JOIN civicrm_price_field pf ON li.price_field_id = pf.id
 LEFT JOIN civicrm_price_set pset ON pf.price_set_id = pset.id
 left join civicrm_contribution contrib ON contrib.id =  li.entity_id AND li.entity_table = 'civicrm_contribution'
 left join civicrm_participant_payment pp ON ifnull( p.registered_by_id, p.id) = pp.participant_id
 LEFT JOIN civicrm_contribution p_contrib ON pp.contribution_id = p_contrib.id
 LEFT JOIN civicrm_contribution main_contrib ON main_contrib.id = CASE li.entity_table WHEN  'civicrm_contribution' THEN  li.entity_id WHEN 'civicrm_participant' THEN p_contrib.id ELSE  '' END
+LEFT JOIN civicrm_contact contact_a on main_contrib.contact_id = contact_a.id
 LEFT JOIN civicrm_contact contrib_contact ON main_contrib.contact_id  = contrib_contact.id
+left join civicrm_email on contact_a.id = civicrm_email.contact_id AND (civicrm_email.is_primary = 1 OR civicrm_email.email is null)
+left join civicrm_phone on contact_a.id = civicrm_phone.contact_id  AND (civicrm_phone.is_primary = 1 OR civicrm_phone.phone is null)
+left join civicrm_address on contact_a.id = civicrm_address.contact_id AND (civicrm_address.is_primary = 1 OR civicrm_address.street_address is null)
+left join civicrm_state_province on civicrm_address.state_province_id = civicrm_state_province.id AND (civicrm_state_province.abbreviation like '%' or civicrm_state_province.abbreviation is null)
+left join civicrm_membership m on contact_a.id = m.contact_id
+left join civicrm_membership_type mt on m.membership_type_id = mt.id
+left join civicrm_membership_status ms on m.status_id = ms.id
 ".$financial_type_sql;
 
   }
@@ -1021,12 +1022,15 @@ SELECT DISTINCT 'civicrm_contact', contact_a.id as contact_id, contact_a.id as c
 ";
 
       // The 'select' segment is rather long, so using a regexp.
-      $sql = preg_replace("/^SELECT contact_a\.id as contact_id.* FROM /sm", '', $sql);
+      $sql = preg_replace("/^SELECT .* FROM /sm", '', $sql);
       $sql = $insertSQL . ' FROM ' . $sql;
 
       // Because the select field aliases are removed, sorting doesn't work.
       // TODO: handle other fields too?
       $sql = str_replace('ORDER BY `price_set_title`', 'ORDER BY pset.title', $sql);
+
+      // For large sets of results, ordering can play tricks.
+      $sql = str_replace('LIMIT 0, 500', '', $sql);
     }
     else {
       CRM_Core_Error::fatal('This operation is not available for the search filters you have selected (layout must be detail).');
@@ -1046,7 +1050,6 @@ SELECT DISTINCT 'civicrm_contact', contact_a.id as contact_id, contact_a.id as c
   function alterRow(&$row) {
     if (strlen($row['participant_id']) > 0) {
       $row['participant_link'] = "<a href='/civicrm/contact/view/participant?reset=1&id=".$row['participant_id']."&cid=".$row['contact_id']."&action=view&context=participant&selectedChild=event'>View Participant</a>";
-      //  $participant_url =" /civicrm/contact/view/participant?reset=1&id=31&cid=176&action=view&context=participant&selectedChild=event";
     }
   }
 
