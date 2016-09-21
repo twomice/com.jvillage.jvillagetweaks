@@ -225,10 +225,8 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
   }
 
   function prepare_sql_string($includeContactIDs = false, $onlyIDs = false) {
-    // check authority of end-user
-    require_once 'utils/util_money.php';
-    if ( pogstone_is_user_authorized('access CiviContribute') == false ){
-      return "select 'You are not authorized to this area' as total_amount from  civicrm_contact where 1=0 limit 1";
+    if (! CRM_Core_Permission::check('access CiviContribute')) {
+      CRM_Core_Error::fatal(ts('You do not have permission to access this page.'));
     }
 
     // If summary_only:   $select = "currency, sum(line_total) as total_amount, count(*) as rec_count";
@@ -423,11 +421,11 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
       $financial_category_field_sql = $tmpFinancialCategory->getFinancialCategoryFieldAsSQL();
 
       if ($summarize_by == 'details') {
-        $select = $tmp_select_date." li.line_total as total_amount, c.id as contact_id,  c.sort_name,   contr.payment_instrument_id as pay_type_id,
+        $select = $tmp_select_date." li.line_total as total_amount, c.sort_name, contr.payment_instrument_id as pay_type_id,
           contr.currency, '1' as rec_count,  contr.id as contrib_id, contr.source as contrib_source, contr.check_number as check_number, contr.trxn_id as contrib_transaction_id, li.id as line_item_id ,
           CASE WHEN contr.contribution_status_id  = 1 THEN 'completed' WHEN contr.contribution_status_id  = 7 THEN 'later refunded' END as contrib_status_name";
 
-        $refund_select =  $tmp_refund_select_date." ( 0  -  li.line_total )  as total_amount, c.id as contact_id,  c.sort_name,   contr.payment_instrument_id as pay_type_id,
+        $refund_select =  $tmp_refund_select_date." ( 0  -  li.line_total )  as total_amount, c.sort_name,   contr.payment_instrument_id as pay_type_id,
           contr.currency, '1' as rec_count,  contr.id as contrib_id, contr.source as contrib_source, contr.check_number as check_number, contr.trxn_id as contrib_transaction_id, li.id as line_item_id, 'is refund' as contrib_status_name " ;
       }
       else {
@@ -450,35 +448,35 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
      */
 
     $non_event_contrib_sql =    "
-    SELECT $select
+    SELECT c.id as contact_id, $select
     FROM   $from
     WHERE  $where
     $groupby ";
 
     $non_event_contrib_refunds_sql =    "
-    SELECT $refund_select
+    SELECT c.id as contact_id, $refund_select
     FROM   $from
     WHERE  $refund_where
     $tmp_refund_groupby_date ";
 
     $part_from = self::participant_from() ;
     $event_contrib_sql =  "
-    SELECT $select
+    SELECT c.id as contact_id, $select
     FROM  $part_from
     WHERE  $where
     $groupby ";
 
     $recur_from = self::recurring_from();
     $non_event_recurring_contribs = "
-    SELECT $select
+    SELECT c.id as contact_id, $select
     FROM $recur_from
     WHERE $where
     $groupby ";
 
-    $sql  = "( $non_event_contrib_sql )
-                UNION ALL /* EVENTCONTRIB */ ( $event_contrib_sql)
-        UNION ALL /* NONEVENTCONTRIBREFUDS */ ( $non_event_contrib_refunds_sql )
-        UNION ALL /* NONEVENTRECURRING */ ( $non_event_recurring_contribs ) " ;
+    $sql  = "$non_event_contrib_sql
+                UNION ALL /* EVENTCONTRIB */ $event_contrib_sql
+        UNION ALL /* NONEVENTCONTRIBREFUDS */ $non_event_contrib_refunds_sql
+        UNION ALL /* NONEVENTRECURRING */ $non_event_recurring_contribs " ;
 
     return $sql;
   }
@@ -505,7 +503,7 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
       }
     }
 
-    if ( $rowcount > 0 && $offset >= 0 ) {
+    if ( $rowcount > 0 && $offset >= 0 && !$onlyIDs ) {
       $sql .= " LIMIT $offset, $rowcount ";
     }
 
@@ -802,6 +800,25 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
   }
 
   /**
+   * This relies on a patch on core.
+   * If the prevnext cache is not filled in correctly, we cannot select only a few individuals
+   * in actions, such as create pdf letters.
+   */
+  function fillupPrevNextCacheSQL($start, $end, $sort, $cacheKey) {
+    $sql = $this->contactIDs($start, $end, $sort);
+
+    // This query has many UNION statements in it.
+    // So we start by replacing all SELECT statements, then prepend the INSERT.
+    $replaceSQL = "SELECT c.id as contact_id, c.id as contact_id";
+    $insertSQL = "SELECT DISTINCT 'civicrm_contact', c.id, c.id, '$cacheKey', CONCAT('Contact ', c.id)";
+
+    $sql = preg_replace('/' . $replaceSQL . '/', $insertSQL, $sql);
+    $sql = 'INSERT INTO civicrm_prevnext_cache (entity_table, entity_id1, entity_id2, cacheKey, data) ' . $sql;
+
+    return $sql;
+  }
+
+  /**
    * Functions below generally don't need to be modified
    */
   function count() {
@@ -837,7 +854,7 @@ class CRM_Contact_Form_Search_Custom_ContributionSummaryForGeneralLedger extends
     $grand_totals = true;
 
     //$select = "currency, sum(line_total) as total_amount, count(*) as rec_count";
-    $sql_inner  = $this->prepare_sql_string(  $includeContactIDs, $onlyIDs  ) ;
+    $sql_inner = $this->prepare_sql_string($includeContactIDs, $onlyIDs);
     $sql  = " SELECT t1.currency, sum(t1.total_amount) as total_amount, count(*) as rec_count FROM ( ".$sql_inner." ) as t1 GROUP BY currency ";
 
     $dao = CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);

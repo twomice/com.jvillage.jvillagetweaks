@@ -24,7 +24,9 @@ function jvillagetweaks_civicrm_config(&$config) {
   $config->imageUploadDir = "$root/sites/$host/files/";
 
   // redmine #862, #931 and others: custom CSS for admin interface.
-  CRM_Core_Resources::singleton()->addStyleFile('com.jvillage.jvillagetweaks', 'css/admin-tweaks.css');
+  if (empty($_REQUEST['snippet'])) {
+    CRM_Core_Resources::singleton()->addStyleFile('com.jvillage.jvillagetweaks', 'css/admin-tweaks.css');
+  }
 }
 
 /**
