@@ -69,22 +69,8 @@ class CRM_Contact_Form_Search_Custom_UpcomingBirthdays extends CRM_Contact_Form_
               '4' => 'April', '5' => 'May', '6' => 'June', '7' => 'July', '8' => 'August', '9' => 'September', '10' => 'October', '11' => 'November', '12' => 'December');
 
 
-    $form->add('select', 'oc_month_start', ts('Start With Month'),
-            $month,
-            false);
-
-    $form->add('select', 'oc_month_end', ts('Ends With Month'),
-            $month,
-            false);
-
-
-    $form->add('text',
-            'oc_day_start',
-            ts(' Start With day'));
-
-    $form->add('text',
-            'oc_day_end',
-            ts(' End With day'));
+    $form->add('datepicker', 'dob_from', 'From', NULL, NULL,array('date' => 'mm/dd', 'time' => FALSE));
+    $form->add('datepicker', 'dob_to', 'To', NULL, NULL,array('date' => 'mm/dd', 'time' => FALSE));
 
     $relative_times_choices = array('0' => 'Current Month', '1' => 'Next Month', '2' => '2 Months From Now', '3' => '3 Months From Now', '4' => '4 Months From Now'
       , '5' => '5 Months From Now', '6' => '6 Months From Now', '7' => '7 Months From Now', '8' => '8 Months From Now', '9' => '9 Months From Now', '10' => '10 Months From Now'
@@ -217,7 +203,7 @@ class CRM_Contact_Form_Search_Custom_UpcomingBirthdays extends CRM_Contact_Form_
                     false);
 
 
-    $form->assign('elements', array('group_of_contact', 'membership_org_of_contact', 'membership_type_of_contact', 'relative_time', 'oc_month_start', 'oc_month_end', 'oc_day_start', 'oc_day_end', 'gender_choice', 'current_age', 'current_age_start', 'current_age_end', 'end_date', 'comm_prefs'));
+    $form->assign('elements', array('group_of_contact', 'membership_org_of_contact', 'membership_type_of_contact', 'relative_time', 'dob_from', 'dob_to', 'gender_choice', 'current_age', 'current_age_start', 'current_age_end', 'end_date', 'comm_prefs'));
   }
 
   function all($offset = 0, $rowcount = 0, $sort = null, $includeContactIDs = FALSE, $onlyIDs = FALSE) {
@@ -310,6 +296,7 @@ class CRM_Contact_Form_Search_Custom_UpcomingBirthdays extends CRM_Contact_Form_
     }
 
     // print "<br>SQL: ".$sql;
+dsm($sql, 'sql');
 
     return $sql;
   }
@@ -349,13 +336,8 @@ class CRM_Contact_Form_Search_Custom_UpcomingBirthdays extends CRM_Contact_Form_
     $clauses[] = "contact_a.is_deleted <> 1";
     $clauses[] = "contact_a.is_deceased <> 1";
 
-    $oc_month_start = $this->_formValues['oc_month_start'];
-    $oc_month_end = $this->_formValues['oc_month_end'];
-
-    $oc_day_start = $this->_formValues['oc_day_start'];
-    $oc_day_end = $this->_formValues['oc_day_end'];
-
-
+    $dob_from = $this->_formValues['dob_from'];
+    $dob_to = $this->_formValues['dob_to'];
 
     $groups_of_individual = $this->_formValues['group_of_contact'];
 
@@ -421,29 +403,16 @@ class CRM_Contact_Form_Search_Custom_UpcomingBirthdays extends CRM_Contact_Form_
       $clauses[] = $rel_time_str;
     }
 
-
-
-
-
-    if (($oc_month_start <> '' ) && is_numeric($oc_month_start)) {
-      $clauses[] = "month(birth_date) >= " . $oc_month_start;
+    if (!empty($dob_from)) {
+      $dob_from_parts = explode('-', $dob_from);
+      $clauses[] = "MONTH(birth_date) >= " . $dob_from_parts[1];
+      $clauses[] = "DAYOFMONTH(birth_date) >= " . $dob_from_parts[2];
     }
-
-
-    if (($oc_month_end <> '' ) && is_numeric($oc_month_end)) {
-      $clauses[] = "month(birth_date) <= " . $oc_month_end;
+    if (!empty($dob_to)) {
+      $dob_to_parts = explode('-', $dob_to);
+      $clauses[] = "MONTH(birth_date) <= " . $dob_to_parts[1];
+      $clauses[] = "DAYOFMONTH(birth_date) <= " . $dob_to_parts[2];
     }
-
-
-
-    if (( $oc_day_start <> '') && is_numeric($oc_day_start)) {
-      $clauses[] = "day(birth_date) >= " . $oc_day_start;
-    }
-
-    if (( $oc_day_end <> '') && is_numeric($oc_day_end)) {
-      $clauses[] = "day(birth_date) <= " . $oc_day_end;
-    }
-
 
     $endDate = CRM_Utils_Date::processDate($this->_formValues['end_date']);
     if ($endDate) {
