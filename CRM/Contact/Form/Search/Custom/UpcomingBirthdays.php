@@ -68,6 +68,16 @@ class CRM_Contact_Form_Search_Custom_UpcomingBirthdays extends CRM_Contact_Form_
             array('' => ' -- select -- ', '1' => 'January', '2' => 'February', '3' => 'March',
               '4' => 'April', '5' => 'May', '6' => 'June', '7' => 'July', '8' => 'August', '9' => 'September', '10' => 'October', '11' => 'November', '12' => 'December');
 
+    // The form is automatically setting focus on the first text field, and if
+    // that field is a datepicker, that will automatically show the calendar
+    // picker control, which is undesirable. But since the datepicker dob_from
+    // field is the first text field, we'll have that problem. To avoid it, create
+    // a useless text field to hold the focus, and use Javascript to hold the
+    // table row that contains it. Below, we'll insert this field just before
+    // dob_from.
+    $form->add('text', 'unused_focus_holder', '', NULL, NULL,array('date' => 'mm/dd', 'time' => FALSE));
+    CRM_Core_Resources::singleton()->addScript('CRM.$(function($){$("#unused_focus_holder").closest("tr").hide()})');
+
 
     $form->add('datepicker', 'dob_from', 'From', NULL, NULL,array('date' => 'mm/dd', 'time' => FALSE));
     $form->add('datepicker', 'dob_to', 'To', NULL, NULL,array('date' => 'mm/dd', 'time' => FALSE));
@@ -203,7 +213,7 @@ class CRM_Contact_Form_Search_Custom_UpcomingBirthdays extends CRM_Contact_Form_
                     false);
 
 
-    $form->assign('elements', array('group_of_contact', 'membership_org_of_contact', 'membership_type_of_contact', 'relative_time', 'dob_from', 'dob_to', 'gender_choice', 'current_age', 'current_age_start', 'current_age_end', 'end_date', 'comm_prefs'));
+    $form->assign('elements', array('group_of_contact', 'membership_org_of_contact', 'membership_type_of_contact', 'relative_time', 'gender_choice', 'unused_focus_holder', 'dob_from', 'dob_to', 'current_age', 'current_age_start', 'current_age_end', 'end_date', 'comm_prefs'));
   }
 
   function all($offset = 0, $rowcount = 0, $sort = null, $includeContactIDs = FALSE, $onlyIDs = FALSE) {
