@@ -295,9 +295,6 @@ class CRM_Contact_Form_Search_Custom_UpcomingBirthdays extends CRM_Contact_Form_
       $sql .= " LIMIT $offset, $rowcount ";
     }
 
-    // print "<br>SQL: ".$sql;
-dsm($sql, 'sql');
-
     return $sql;
   }
 
