@@ -35,36 +35,13 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
     // $this->_eventID = $tmpEventId;
     // $this->_pricesetOptionId = $tmp_priceset_id;
 
-    //print "<hr><br>Current event id: ".$this->_eventID;
-
     $this->setColumns();
   }
 
-  function __destruct() {
-    /*
-    if ( $this->_eventID ) {
-      $sql = "DROP TEMPORARY TABLE {$this->_tableName}";
-      CRM_Core_DAO::executeQuery( $sql );
-    }
-    */
-  }
-
   function buildForm(&$form) {
-    // Create a select list of the various price set options
-
-    /**
-     * You can define a custom title for the search form
-     */
     $this->setTitle('Prepare Statements');
 
-    /**
-     * if you are using the standard template, this array tells the template what elements
-     * are part of the search criteria
-     */
-    // $form->assign('elements', array('priceset_option_id'));
-
-    require_once 'utils/util_money.php';
-    if (pogstone_is_user_authorized('access CiviContribute') == false) {
+    if (! CRM_Core_Permission::check('access CiviContribute')) {
       $this->setTitle('Not Authorized');
       return;
     }
@@ -188,16 +165,13 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
     $comm_prefs_select = $form->add('select', 'comm_prefs', ts('Communication Preference'), $comm_prefs, false);
 
     $form->assign( 'elements', array('group_of_contact', 'membership_org_of_contact' , 'membership_type_of_contact' ,  'end_date' , 'num_days_overdue', 'contrib_type' ,  'date_selection', 'comm_prefs',  'layout_choice') );
-
-    //  $form->assign('elements', array('target_date'));
   }
 
   function setColumns() {
-    require_once 'utils/util_money.php';
-    if (pogstone_is_user_authorized('access CiviContribute') == false) {
-      $columns_to_show = array( ts('You are not authorized to this area' )        => 'total_amount', );
+    if (! CRM_Core_Permission::check('access CiviContribute')) {
+      $columns_to_show = array(ts('You are not authorized to this area') => 'total_amount');
       $this->_columns = $columns_to_show;
-      return ;
+      return;
     }
 
     $fin_type_label  = "Financial Type";
@@ -248,7 +222,6 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
     }
 
     // [receive_date_relative] => 0 [receive_date_from] => [receive_date_to]
-    // print_r( $this->_params );
     $tmp_contrib_where = '';
     $tmp_pledge_pay_where = '';
 
@@ -300,10 +273,7 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
   }
 
   function all($offset = 0, $rowcount = 0, $sort = null, $includeContactIDs = false, $onlyIDs = false) {
-    // check authority of end-user
-    require_once 'utils/util_money.php';
-
-    if (pogstone_is_user_authorized('access CiviContribute') == false) {
+    if (! CRM_Core_Permission::check('access CiviContribute')) {
       return "select 'You are not authorized to this area' as total_amount from  civicrm_contact where 1=0 limit 1";
     }
 
@@ -334,7 +304,7 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
     $searchTools::verifyGroupCacheTable($group_of_contact ) ;
 
     $grand_totals = false;
-    //  print "<br> grand totals? ".$grand_totals;
+
     $select = $this->select($grand_totals, $onlyIDs);
     $from = $this->from();
     $where = $this->where($includeContactIDs);
@@ -404,10 +374,7 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
 
      }
 
-   // print "<br>End date: ".$end_date_parm ;
-
   //    [receive_date_relative] => 0 [receive_date_from] => [receive_date_to]
-   //   print_r( $this->_params );
    $tmp_contrib_where = '';
    $tmp_pledge_pay_where = '';
    if(strlen($end_date_parm) > 0 ){
@@ -423,8 +390,6 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
    }
 
    // end of date-related stuff
-
-
 
     require_once('utils/FinancialProjections.php');
        $FinancialProjections = new FinancialProjections();
@@ -573,226 +538,178 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
 
 
         return $tmp_from;
-
-
-
   }
 
-  function where( $includeContactIDs = false ) {
-       $clauses = array( );
+  function where($includeContactIDs = false) {
+    $clauses = array();
+    $contrib_type_ids = $this->_formValues['contrib_type'];
 
-   $contrib_type_ids = $this->_formValues['contrib_type'] ;
+    if(!is_array($contrib_type_ids)) {
+      //print "<br>No contrib type selected.";
+    }
+    else {
+      $i = 1;
+      $tmp_id_list = '';
 
-         if( ! is_array($contrib_type_ids)){
+      foreach ($contrib_type_ids as $cur_id) {
+        if (strlen($cur_id ) > 0) {
+          $tmp_id_list = $tmp_id_list." '".$cur_id."'";
+          if($i < sizeof($contrib_type_ids)) {
+            $tmp_id_list = $tmp_id_list.",";
+          }
+        }
 
-           //print "<br>No contrib type selected.";
+        $i += 1;
+      }
 
+      if (!(empty($tmp_id_list))) {
+        $clauses[] = "ct.id IN (" . $tmp_id_list . ") ";
+      }
 
-         }else{
+      //if(strlen($contrib_type_id) > 0){
+      //  $clauses[] = "f1.contrib_type_id = '".$contrib_type_id."' ";
+      // }
+    }
 
-           $i = 1;
-           $tmp_id_list = '';
-           foreach($contrib_type_ids as $cur_id){
-             if(strlen($cur_id ) > 0){
-               $tmp_id_list = $tmp_id_list." '".$cur_id."'" ;
-               if($i < sizeof($contrib_type_ids)){
-                 $tmp_id_list = $tmp_id_list."," ;
-               }
-             }
-             $i += 1;
-           }
+    // Check user choice of accounting code.
+    $accounting_codes = $this->_formValues['accounting_code'];
 
-           if(!(empty($tmp_id_list)) ){
-             $clauses[] = "ct.id IN ( ".$tmp_id_list." ) ";
+    if (!is_array($accounting_codes)) {
+      //print "<br>No accounting code selected.";
+    }
+    elseif (is_array($accounting_codes)) {
+      $i = 1;
+      $tmp_id_list = '';
 
-           }
+      foreach ($accounting_codes as $cur_id) {
+        if (strlen($cur_id ) > 0) {
+          $tmp_id_list = $tmp_id_list." '".$cur_id."'";
 
-         //if(strlen($contrib_type_id) > 0){
-          //  $clauses[] = "f1.contrib_type_id = '".$contrib_type_id."' ";
-        // }
-       }
+          if($i < sizeof($accounting_codes)) {
+            $tmp_id_list = $tmp_id_list . ",";
+          }
+        }
 
-  // Check user choice of accounting code.
-  $accounting_codes = $this->_formValues['accounting_code'] ;
+        $i += 1;
+      }
 
-         if( ! is_array($accounting_codes)){
+      if (!(empty($tmp_id_list))) {
+        $clauses[] = "ct.accounting_code IN ( ".$tmp_id_list." ) ";
+      }
 
-           //print "<br>No accounting code selected.";
+      //if(strlen($contrib_type_id) > 0){
+      //  $clauses[] = "f1.contrib_type_id = '".$contrib_type_id."' ";
+      // }
+    }
 
+    $groups_of_contact = $this->_formValues['group_of_contact'];
+    $membership_types_of_contact = $this->_formValues['membership_type_of_contact'];
+    $membership_orgs_of_contact = $this->_formValues['membership_org_of_contact'];
 
-         }else if(is_array($accounting_codes)) {
-           //print "<br>accounting codes: ";
-           //print_r($accounting_codes);
-           $i = 1;
-           $tmp_id_list = '';
+    ///////////////////////////////////////////////////////////////////////////////
+    // Need to deal with group and membership filters.
 
-           foreach($accounting_codes as $cur_id){
-             if(strlen($cur_id ) > 0){
-               $tmp_id_list = $tmp_id_list." '".$cur_id."'" ;
+    require_once('utils/CustomSearchTools.php');
+    $searchTools = new CustomSearchTools();
 
+    $contact_field_name = "t1.underlying_contact_id";
+    $searchTools->updateWhereClauseForGroupsChosen($groups_of_contact, $contact_field_name, $clauses );
+    $searchTools->updateWhereClauseForMemberships( $membership_types_of_contact,  $membership_orgs_of_contact, $contact_field_name,  $clauses   ) ;
+    ////////////////////////////////////////////////////////////////////////////////
 
-               if($i < sizeof($accounting_codes)){
-                 $tmp_id_list = $tmp_id_list."," ;
-               }
-             }
-             $i += 1;
-           }
+    // Figure out if end-user is filtering results according to groups.
+    // require_once('utils/CustomSearchTools.php');
+    // $searchTools = new CustomSearchTools();
 
+    $comm_prefs = $this->_formValues['comm_prefs'];
 
-           if(!(empty($tmp_id_list))  ){
-             //print "<br><br>id list: ".$tmp_id_list;
-             $clauses[] = "ct.accounting_code IN ( ".$tmp_id_list." ) ";
-             //print "<br>";
-             //print_r ($clauses);
+    $searchTools->updateWhereClauseForCommPrefs($comm_prefs, $clauses);
 
-           }
+    /*
+    $tmp_sql_list = $searchTools->getSQLStringFromArray($groups_of_contact);
 
-         //if(strlen($contrib_type_id) > 0){
-          //  $clauses[] = "f1.contrib_type_id = '".$contrib_type_id."' ";
-        // }
-       }
-
-
-
-
-
-  $groups_of_contact = $this->_formValues['group_of_contact'];
-
-  $membership_types_of_contact = $this->_formValues['membership_type_of_contact'];
-
-  $membership_orgs_of_contact = $this->_formValues['membership_org_of_contact'];
-       ///////////////////////////////////////////////////////////////////////////////
-  // Need to deal with group and membership filters.
-
-  require_once('utils/CustomSearchTools.php');
-  $searchTools = new CustomSearchTools();
-
-  $contact_field_name = "t1.underlying_contact_id";
-  $searchTools->updateWhereClauseForGroupsChosen($groups_of_contact, $contact_field_name, $clauses );
-
-
-  $searchTools->updateWhereClauseForMemberships( $membership_types_of_contact,  $membership_orgs_of_contact, $contact_field_name,  $clauses   ) ;
-
-
-  ////////////////////////////////////////////////////////////////////////////////
-
-
-
-  // Figure out if end-user is filtering results according to groups.
-  //require_once('utils/CustomSearchTools.php');
-  //$searchTools = new CustomSearchTools();
-
-  $comm_prefs = $this->_formValues['comm_prefs'];
-
-
-  $searchTools->updateWhereClauseForCommPrefs($comm_prefs, $clauses  ) ;
-
-  /*
-  $tmp_sql_list = $searchTools->getSQLStringFromArray($groups_of_contact);
-
-  if(strlen($tmp_sql_list) > 0 ){
-     $clauses[] = "(  ( groups.group_id IN (".$tmp_sql_list.") AND groups.status = 'Added') OR
+    if (strlen($tmp_sql_list) > 0 ){
+      $clauses[] = "(  ( groups.group_id IN (".$tmp_sql_list.") AND groups.status = 'Added') OR
            ( groupcache.group_id IN (".$tmp_sql_list.") )  )";
+    }
 
-  }
+    $membership_types_of_con = $this->_formValues['membership_type_of_contact'];
 
+    $tmp_membership_sql_list = $searchTools->convertArrayToSqlString( $membership_types_of_con );
 
-  $membership_types_of_con = $this->_formValues['membership_type_of_contact'];
+    if (strlen($tmp_membership_sql_list) > 0) {
+      $clauses[] = "memberships.membership_type_id IN (".$tmp_membership_sql_list.")" ;
+      $clauses[] = "mem_status.is_current_member = '1'";
+      $clauses[] = "mem_status.is_active = '1'";
+    }
 
+    // 'membership_org_of_contact'
+    $membership_org_of_con = $this->_formValues['membership_org_of_contact'];
+    $tmp_membership_org_sql_list = $searchTools->convertArrayToSqlString( $membership_org_of_con );
 
-  $tmp_membership_sql_list = $searchTools->convertArrayToSqlString( $membership_types_of_con ) ;
-  if(strlen($tmp_membership_sql_list) > 0 ){
-    $clauses[] = "memberships.membership_type_id IN (".$tmp_membership_sql_list.")" ;
-    $clauses[] = "mem_status.is_current_member = '1'";
-    $clauses[] = "mem_status.is_active = '1'";
-
-  }
-
-  // 'membership_org_of_contact'
-
-  $membership_org_of_con = $this->_formValues['membership_org_of_contact'];
-  $tmp_membership_org_sql_list = $searchTools->convertArrayToSqlString( $membership_org_of_con ) ;
-  if(strlen($tmp_membership_org_sql_list) > 0 ){
-    // print "<br>membership orgs: <br>".$tmp_membership_org_sql_list;
-
+    if(strlen($tmp_membership_org_sql_list) > 0 ) {
       $clauses[] = "mt.member_of_contact_id IN (".$tmp_membership_org_sql_list.")" ;
       $clauses[] = "mt.is_active = '1'" ;
       $clauses[] = "mem_status.is_current_member = '1'";
       $clauses[] = "mem_status.is_active = '1'";
-      //print_r($clauses);
-
-  }
-
-  */
-
-
-  $num_days_overdue = $this->_formValues['num_days_overdue'];
-
-  //print "<br>Num days overdue: ".$num_days_overdue;
-  if (!(is_numeric($num_days_overdue ))){
-    //print "<br><br>Error: Number of Days overdue entered is not a number: ".$num_days_overdue;
-    //return ;
-
-  }else{
-    if(strlen($num_days_overdue) > 0){
-      //print "<br>filter given for num days overdue. ";
-
-       $end_date_parm = CRM_Utils_Date::processDate( $this->_formValues['end_date'] );
-
-
-
-           //print "<br>End date: ".$end_date_parm ;
-           if(strlen( $end_date_parm ) > 0 ){
-
-             $iyear = substr($end_date_parm, 0, 4);
-             $imonth = substr($end_date_parm , 4, 2);
-             $iday = substr($end_date_parm, 6, 2);
-             $end_date_parm = $iyear.'-'.$imonth.'-'.$iday;
-
-           }
-
-      if(strlen($end_date_parm) > 0 ){
-              $base_date = "'".$end_date_parm."'";
-
-        }else{
-            $base_date = "now()";
-
-         }
-         $tmp = "datediff($base_date ,expected_date) >= $num_days_overdue" ;
-        // print "<br><br>tmp: ".$tmp;
-      $clauses[] = $tmp;
-
     }
-  }
+    */
 
+    $num_days_overdue = $this->_formValues['num_days_overdue'];
 
-  if ( $includeContactIDs ) {
-         $contactIDs = array( );
-         foreach ( $this->_formValues as $id => $value ) {
-             if ( $value &&
-                  substr( $id, 0, CRM_Core_Form::CB_PREFIX_LEN ) == CRM_Core_Form::CB_PREFIX ) {
-                 $contactIDs[] = substr( $id, CRM_Core_Form::CB_PREFIX_LEN );
-             }
-         }
+    //print "<br>Num days overdue: ".$num_days_overdue;
+    if (!(is_numeric($num_days_overdue ))){
+      //print "<br><br>Error: Number of Days overdue entered is not a number: ".$num_days_overdue;
+      //return ;
+    }
+    else {
+      if (strlen($num_days_overdue) > 0) {
+        $end_date_parm = CRM_Utils_Date::processDate( $this->_formValues['end_date']);
+        //print "<br>End date: ".$end_date_parm;
 
-         if ( ! empty( $contactIDs ) ) {
-                $contactIDs = implode( ', ', $contactIDs );
-                $clauses[] = "contact_a.id IN ( $contactIDs )";
-            }
+        if (strlen($end_date_parm) > 0) {
+          $iyear = substr($end_date_parm, 0, 4);
+          $imonth = substr($end_date_parm , 4, 2);
+          $iday = substr($end_date_parm, 6, 2);
+          $end_date_parm = $iyear.'-'.$imonth.'-'.$iday;
         }
 
+        if(strlen($end_date_parm) > 0 ){
+          $base_date = "'".$end_date_parm."'";
+        }
+        else {
+          $base_date = "now()";
+        }
 
-       if(count($clauses) > 0){
-            $partial_where_clause = implode( ' AND ', $clauses );
-            $tmp_where = "WHERE ".$partial_where_clause;
+        $tmp = "datediff($base_date ,expected_date) >= $num_days_overdue" ;
+        // print "<br><br>tmp: ".$tmp;
+        $clauses[] = $tmp;
+      }
+    }
 
+    if ($includeContactIDs) {
+      $contactIDs = array();
+      foreach ($this->_formValues as $id => $value ) {
+        if ($value && substr($id, 0, CRM_Core_Form::CB_PREFIX_LEN) == CRM_Core_Form::CB_PREFIX) {
+          $contactIDs[] = substr( $id, CRM_Core_Form::CB_PREFIX_LEN);
+        }
+      }
 
-       }else{
-            $tmp_where = "";
-       }
+      if (!empty($contactIDs)) {
+        $contactIDs = implode( ', ', $contactIDs);
+        $clauses[] = "contact_a.id IN ( $contactIDs )";
+      }
+    }
 
-      // print "<br><br>Where: ".$tmp_where;
-       return $tmp_where;
+    if (count($clauses) > 0) {
+      $partial_where_clause = implode( ' AND ', $clauses );
+      $tmp_where = "WHERE ".$partial_where_clause;
+    }
+    else {
+      $tmp_where = "";
+    }
+
+    return $tmp_where;
   }
 
   function templateFile() {
@@ -800,7 +717,7 @@ class CRM_Contact_Form_Search_Custom_PrepareStatements extends CRM_Contact_Form_
   }
 
   function setDefaultValues() {
-    return array( );
+    return array();
   }
 
   function alterRow(&$row) {
