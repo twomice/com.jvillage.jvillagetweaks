@@ -254,17 +254,9 @@ class HebrewCalendar {
     $date = new DateTime($tmp_date);
     $caldate_timestamp = $date->getTimestamp();
 
-    $dst_in_use = date("I", $caldate_timestamp);
-    //$tmp_UTC_offset =  date("O", $tmp_time);
-    //print "DST: ".$dst_in_use."<br>";
-    //print "UTC offset: ".$tmp_UTC_offset."<br>";
-
-
-    $week_day_num = date('w', $caldate_timestamp);
     // Check if this is Friday.
-    if ($week_day_num == '5') {
+    if (date('w', $caldate_timestamp) == '5') {
 
-//$cal_pref_table_name = "civicrm_value_primary_organization_calendar_pr_16";
       require_once('utils/util_custom_fields.php');
 
       $custom_field_group_label = "Calendar Preferences";
@@ -276,7 +268,6 @@ class HebrewCalendar {
       $custom_field_minutes_offset = "Number of Minutes Offset";
       $customFieldLabels[] = $custom_field_minutes_offset;
 
-
       $custom_fields_candle_offset = "Number of Minutes before sundown to light candles";
       $customFieldLabels[] = $custom_fields_candle_offset;
 
@@ -285,136 +276,73 @@ class HebrewCalendar {
       getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $sql_table_name, $outCustomColumnNames);
 
       $sql_zenith_field = $outCustomColumnNames[$custom_field_zenith_label];
-      $sql_minutes_offset_field = $outCustomColumnNames[$custom_field_minutes_offset];
-      $sql_minutes_candle_offset = $outCustomColumnNames[$custom_fields_candle_offset];
-//
-
-      $sql = "Select geo_code_1, geo_code_2, " . $sql_zenith_field . " as zenith,
-	" . $sql_minutes_offset_field . " as minutes_offset,
-	" . $sql_minutes_candle_offset . " as candle_offset
-	from civicrm_contact AS contact_a
-	left join civicrm_address on contact_a.id = civicrm_address.contact_id
-	left join civicrm_state_province on civicrm_address.state_province_id = civicrm_state_province.id
-	left join " . $sql_table_name . " as cal_prefs on contact_a.id = cal_prefs.entity_id
-	WHERE
-	contact_a.contact_sub_type =  'Primary_Organization' AND
-	civicrm_address.is_primary = 1
-	order by contact_a.id ";
-      $zenith = '';
+      $sql_minutes_offset_field_field = $outCustomColumnNames[$custom_field_minutes_offset];
+      $sql_minutes_candle_offset_field = $outCustomColumnNames[$custom_fields_candle_offset];
+      $sql = "
+        Select geo_code_1, geo_code_2, $sql_zenith_field as zenith,
+          $sql_minutes_offset_field_field as minutes_offset,
+          $sql_minutes_candle_offset_field as candle_offset
+          from civicrm_contact AS contact_a
+          left join civicrm_address on contact_a.id = civicrm_address.contact_id
+          left join civicrm_state_province on civicrm_address.state_province_id = civicrm_state_province.id
+          left join $sql_table_name as cal_prefs on contact_a.id = cal_prefs.entity_id
+          WHERE
+          contact_a.contact_sub_type =  'Primary_Organization' AND
+          civicrm_address.is_primary = 1
+          order by contact_a.id ";
+dsm($sql, 'sql');
 
 // print "<br>sunset sql: ".$sql; 
       $dao = & CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
 
       if ($dao->fetch()) {
+dsm($dao, 'dao');
         $latitude = $dao->geo_code_1;
         $longitude = $dao->geo_code_2;
-        $zenith = $dao->zenith;
-        $minutes_offset = $dao->minutes_offset;
-        $candle_offset = $dao->candle_offset;
+        $zenith = $dao->zenith ?: 89.2;
+        $minutes_offset = $dao->minutes_offset ?: 0;
+        $candle_offset = $dao->candle_offset ?: '-18';
       } else {
-        $no_data = true;
-      }
-
-
-      $dao->free();
-
-      if ($no_data) {
         return "Unknown Location, cannot do candlelighting/sunset time";
       }
+      $dao->free();
 
-
-      $default_zenith = 89.2;
-      if (strlen($zenith) == 0 || $zenith == 0) {
-        $zenith = $default_zenith;
-      }
-
-
-      if (strlen($minutes_offset) == 0) {
-        $minutes_offset = 0;
-      }
-
-
-      /*
-        $civilian_zenith=96;
-        $nautical_zenith=102;
-        $astronomical_zenith=108;
-       */
-
+      // Get sunset time based on local timezone, zenith, etc.
       $dateTimeZoneUTC = new DateTimeZone('UTC');
       $local_timezone = new DateTimeZone(date_default_timezone_get());
-
       $dateTimeUTC = new DateTime($tmp_date, $dateTimeZoneUTC);
       $dateTimeLocal = new DateTime($tmp_date, $local_timezone);
-
-
       $tmp_off = timezone_offset_get($local_timezone, $dateTimeUTC);
       $tmp_UTC_offset = round($tmp_off / 3600);
+//      $sunset_time = date_sunset($caldate_timestamp, SUNFUNCS_RET_STRING, $latitude, $longitude, $zenith, $tmp_UTC_offset);
 
-      //print "<br>offset to GMT/UTC: ".$tmp_UTC_offset;
-      // print "<br>zenith: ".$zenith;
-      //$sunset_time = date_sunset($tmp_time, SUNFUNCS_RET_STRING, $latitude, $longitude, $zenith, $tmp_UTC_offset);
-      $sunset_time = date_sunset($caldate_timestamp, SUNFUNCS_RET_STRING, $latitude, $longitude, $zenith, $tmp_UTC_offset);
-
-
-
-
-      ///	print "<br>Sunset time: ".$sunset_time;
-      // SUNFUNCS_RET_DOUBLE
-      //$tmp = date( 'M j, Y; g:i a' , $caldate_timestamp) ;
-      //print "<br>caldate: ".$tmp;
-      //print "<br>lat: ".$latitude;
-      $working_time_orig = date_sunset($caldate_timestamp, SUNFUNCS_RET_TIMESTAMP, $latitude, $longitude, $zenith, $tmp_UTC_offset);
+//      $working_time_orig = date_sunset($caldate_timestamp, SUNFUNCS_RET_TIMESTAMP, $latitude, $longitude, $zenith, $tmp_UTC_offset);
 
       $sunset_time_str = date_sunset($caldate_timestamp, SUNFUNCS_RET_STRING, $latitude, $longitude, $zenith, $tmp_UTC_offset);
 
-      //print "<br>sunset time str: ".$sunset_time_str ;
-      //$tmp = date( 'M j, Y; g:i a' , $working_time_orig) ;
-      //print "<br>sunset: ".$tmp;
-      //print "<br>min. offset : ".$minutes_offset;
       // Add in configured offset.
-      $working_time_adj = strtotime("+$minutes_offset", $working_time_orig);
-
-      //print "<br>time org:".$working_time_orig;
-      //print "<br>time adj:".$working_time_adj;
-
-      if (strlen($candle_offset) == 0 || $candle_offset == 0) {
-        $candle_offset = "-18";
-      }
-      $working_candle_time = strtotime("+$candle_offset minutes", $working_time_adj);
-
-      $format_sunset_time = date('g:i', $working_time_adj);
+//      $working_time_adj = strtotime("+$minutes_offset", $working_time_orig);
+//      $format_sunset_time = date('g:i', $working_time_adj);
 
 
-      $format_candle_time = date('g:i', $working_candle_time);
+//      $working_candle_time = strtotime("+$candle_offset minutes", $working_time_adj);
+//      $format_candle_time = date('g:i', $working_candle_time);
 
-      $am_pm_symbol = 'pm';
-      if ($sunset_or_candle == 'sunset') {
-
-        $output_time_formated = $format_sunset_time . $am_pm_symbol;
-      } else if ($sunset_or_candle == 'candle') {
-
-
-        // $output_time_formated  = $format_candle_time.$am_pm_symbol  ;
-        // print "<br>candle time:".$output_time_formated;
-      } else {
-        print "<br>Unknown output flag for sunset/candlelighting: " . $sunset_or_candle . "<br>";
-      }
-
+      $am_pm_symbol = 'pm'; // sunset and candle-lighting are only in the evening.
 
       // Format sunset time as hours and minutes.
-      $sunset_hour = floor($sunset_time);
-      //print "<br>sunset time: ".$sunset_time;
-      //print "<br>sunset hour: ".$sunset_hour;
-      $tmp_min = $sunset_time - $sunset_hour;
+//      $sunset_hour = floor($sunset_time);
+//      $tmp_min = $sunset_time - $sunset_hour;
 
-      $sunset_minutes = round($tmp_min * 60);
+//      $sunset_minutes = round($tmp_min * 60);
 
-      $sunset_minutes_adjusted = $sunset_minutes + $minutes_offset;
+//      $sunset_minutes_adjusted = $sunset_minutes + $minutes_offset;
 
+//FIXME: looks like candle time offset is not used. just trace backwards from
+//`return $output_time_formated` to see how $output_time_formated is determined
+//for candles.
 
-
-      $sunset_time = $sunset_time_str;
-      $candle_time_array = explode(":", $sunset_time);
+      $candle_time_array = explode(":", $sunset_time_str);
       $sunset_hour = $candle_time_array[0];
       $sunset_min = $candle_time_array[1];
 
@@ -423,18 +351,14 @@ class HebrewCalendar {
         $sunset_hour = $sunset_hour - 12;
       }
 
-      $am_pm_symbol = 'pm';   // sunset is only in the evening.
       $sunset_time_formated = $sunset_hour . ':' . $sunset_min . $am_pm_symbol;
       $output_time_formated = $sunset_time_formated;
 
       if ($sunset_or_candle == 'candle') {
         $minutes_before_sunset = '18 minutes';
-
         $tmp_1 = date_create('2000-10-18' . ' ' . $sunset_hour . ':' . $sunset_min);
         date_sub($tmp_1, date_interval_create_from_date_string($minutes_before_sunset));
         $tmp_2 = date_format($tmp_1, 'g:i');
-
-        $am_pm_symbol = 'pm';   // candlelighting is only in the evening.
         $output_time_formated = $tmp_2 . $am_pm_symbol;
       }
     } else {

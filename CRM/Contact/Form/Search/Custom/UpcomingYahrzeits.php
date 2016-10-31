@@ -119,9 +119,13 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
       '10' => '10 Months From Now',
       '11' => '11 Months From Now',
       '12' => '12 Months From Now',
-      '2_d' => 'Next 2 days',
-      '7_d' => 'Next 7 days',
-      '14_d' => 'Next 14 days',
+      '1_d' => 'Tomorrow',
+      '2_d' => 'In 2 days',
+      '3_d' => 'In 3 days',
+      '6_d' => 'In 6 days',
+      '7_d' => 'In 7 days',
+      '14_d' => 'In 14 days',
+      '30_d' => 'In 30 days',
     );
 
     $mem_ids = $searchTools->getMembershipsforSelectList();
@@ -579,7 +583,7 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
     if (is_array($relative_time_array) && ! empty($relative_time_array)) {
       foreach ($relative_time_array as $relative_time) {
         // If the option is purely numeric, we assume it's a month filter (1,2,3,... months ago)
-        // if it's in the format 7_d, we assume it's 'X days ago'.
+        // if it's in the format 7_d, we assume it's 'in X days'.
         // [ML] I'm not sure where the 7_d convention came from, but some clients had this in smartgroups.
         if (is_numeric($relative_time)) {
           $relative_time = $relative_time . ' MONTH';
@@ -588,9 +592,12 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
              AND YEAR($date_sql_field_name) = YEAR(date_add(NOW(), INTERVAL $relative_time)))";
         }
         elseif (substr($relative_time, -2, 2) == '_d') {
-          // Find Yahrzeits in the next X days.
+          // Find Yahrzeits in the next X day.
+          // Meaning that if today is the 1st, and we want Yahrzeits in 5 days,
+          // then we should expect only Yahrzeits on the 6th.
+          // This is used a lot for scheduled reminders, so it should be the exact day, not a range.
           $relative_time = substr($relative_time, 0, -2) . ' DAY';
-          $relative_time_sql_clauses[] = "($date_sql_field_name >= NOW() AND $date_sql_field_name <= DATE_ADD(NOW(), INTERVAL $relative_time))";
+          $relative_time_sql_clauses[] = "(DATE_FORMAT($date_sql_field_name, '%Y-%m-%d') = DATE_FORMAT(DATE_ADD(NOW(), INTERVAL $relative_time), '%Y-%m-%d'))";
         }
       }
     }
