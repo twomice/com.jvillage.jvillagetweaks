@@ -255,77 +255,69 @@ class HebrewCalendar {
     $caldate_timestamp = $date->getTimestamp();
 
     // Check if this is Friday.
-    if (date('w', $caldate_timestamp) == '5') {
-
-      require_once('utils/util_custom_fields.php');
-
-      $customFieldLabels = array();
-      $custom_field_zenith_label = "Zenith Used to Calculate Sunset";
-      $customFieldLabels[] = $custom_field_zenith_label;
-      $custom_field_minutes_offset = "Number of Minutes Offset";
-      $customFieldLabels[] = $custom_field_minutes_offset;
-      $custom_fields_candle_offset = "Number of Minutes before sundown to light candles";
-      $customFieldLabels[] = $custom_fields_candle_offset;
-
-      $outCustomColumnNames = array();
-      getCustomTableFieldNames("Calendar Preferences", $customFieldLabels, $sql_table_name, $outCustomColumnNames);
-
-      $sql = "
-        Select geo_code_1, geo_code_2, {$outCustomColumnNames[$custom_field_zenith_label]} as zenith,
-          {$outCustomColumnNames[$custom_field_minutes_offset]} as minutes_offset,
-          {$outCustomColumnNames[$custom_fields_candle_offset]} as candle_offset
-          from civicrm_contact AS contact_a
-          left join civicrm_address on contact_a.id = civicrm_address.contact_id
-          left join civicrm_state_province on civicrm_address.state_province_id = civicrm_state_province.id
-          left join $sql_table_name as cal_prefs on contact_a.id = cal_prefs.entity_id
-          WHERE
-          contact_a.contact_sub_type =  'Primary_Organization' AND
-          civicrm_address.is_primary = 1
-          order by contact_a.id ";
-      $dao = & CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
-      if ($dao->fetch()) {
-        $latitude = $dao->geo_code_1;
-        $longitude = $dao->geo_code_2;
-        $zenith = $dao->zenith ?: 89.2;
-        $minutes_offset = $dao->minutes_offset ?: 0;
-        $candle_offset = $dao->candle_offset ?: '-18';
-      } else {
-        return "Unknown Location, cannot do candlelighting/sunset time";
-      }
-      $dao->free();
-
-      // Get sunset time based on local timezone, zenith, etc.
-      $dateTimeZoneUTC = new DateTimeZone('UTC');
-      $local_timezone = new DateTimeZone(date_default_timezone_get());
-      $dateTimeUTC = new DateTime($tmp_date, $dateTimeZoneUTC);
-      $dateTimeLocal = new DateTime($tmp_date, $local_timezone);
-      $tmp_off = timezone_offset_get($local_timezone, $dateTimeUTC);
-      $tmp_UTC_offset = round($tmp_off / 3600);
-
-      // Get sunset time based on date, lat/long, zenith
-      $sunset_time = date_sunset($caldate_timestamp, SUNFUNCS_RET_TIMESTAMP, $latitude, $longitude, $zenith, $tmp_UTC_offset);
-      $sunset_time += ($minutes_offset * 60);
-
-      switch ($sunset_or_candle) {
-        case 'sunset':
-          $output_time = $sunset_time;
-          break;
-        case 'candle':
-          $output_time = $sunset_time + ($candle_offset * -60);
-          break;
-        default:
-          // This should never happen.
-          return NULL;
-      }
-
-      $output_time_formated = date('g:i a', $output_time);
-      dsm($output_time, '$output_time');
-      dsm($output_time_formated, '$output_time_formated');
+    if (date('w', $caldate_timestamp) != '5') {
+      return NULL;
     }
 
+    // Get lat/long, zenith, and offset times for primary organization.
+    require_once('utils/util_custom_fields.php');
+    $customFieldLabels = array();
+    $custom_field_zenith_label = "Zenith Used to Calculate Sunset";
+    $customFieldLabels[] = $custom_field_zenith_label;
+    $custom_field_minutes_offset = "Number of Minutes Offset";
+    $customFieldLabels[] = $custom_field_minutes_offset;
+    $custom_fields_candle_offset = "Number of Minutes before sundown to light candles";
+    $customFieldLabels[] = $custom_fields_candle_offset;
+    $outCustomColumnNames = array();
+    getCustomTableFieldNames("Calendar Preferences", $customFieldLabels, $sql_table_name, $outCustomColumnNames);
+    $sql = "
+      Select geo_code_1, geo_code_2, {$outCustomColumnNames[$custom_field_zenith_label]} as zenith,
+        {$outCustomColumnNames[$custom_field_minutes_offset]} as minutes_offset,
+        {$outCustomColumnNames[$custom_fields_candle_offset]} as candle_offset
+        from civicrm_contact AS contact_a
+        left join civicrm_address on contact_a.id = civicrm_address.contact_id
+        left join civicrm_state_province on civicrm_address.state_province_id = civicrm_state_province.id
+        left join $sql_table_name as cal_prefs on contact_a.id = cal_prefs.entity_id
+        WHERE
+        contact_a.contact_sub_type =  'Primary_Organization' AND
+        civicrm_address.is_primary = 1
+        order by contact_a.id ";
+    $dao = & CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
+    if ($dao->fetch()) {
+      $latitude = $dao->geo_code_1;
+      $longitude = $dao->geo_code_2;
+      $zenith = $dao->zenith ?: 89.2;
+      $minutes_offset = $dao->minutes_offset ?: 0;
+      $candle_offset = $dao->candle_offset ?: '18';
+    } else {
+      return "Unknown Location, cannot do candlelighting/sunset time";
+    }
+    $dao->free();
 
+    // Get sunset time based on lat/long, local timezone, zenith, etc.
+    $dateTimeZoneUTC = new DateTimeZone('UTC');
+    $local_timezone = new DateTimeZone(date_default_timezone_get());
+    $dateTimeUTC = new DateTime($tmp_date, $dateTimeZoneUTC);
+    $dateTimeLocal = new DateTime($tmp_date, $local_timezone);
+    $tmp_off = timezone_offset_get($local_timezone, $dateTimeUTC);
+    $tmp_UTC_offset = round($tmp_off / 3600);
+    $sunset_time = date_sunset($caldate_timestamp, SUNFUNCS_RET_TIMESTAMP, $latitude, $longitude, $zenith, $tmp_UTC_offset);
+    $sunset_time += ($minutes_offset * 60);
 
-    return $output_time_formated;
+    // Adjust for candles if so requested.
+    switch ($sunset_or_candle) {
+      case 'sunset':
+        $output_time = $sunset_time;
+        break;
+      case 'candle':
+        $output_time = $sunset_time + ($candle_offset * -60);
+        break;
+      default:
+        // This should never happen.
+        return NULL;
+    }
+
+    return date('g:i a', $output_time);
   }
 
   /**
