@@ -250,7 +250,7 @@ class HebrewCalendar {
       return 'Unknow year, cannot do sunset/candlelighting time';
     }
 
-    $tmp_date = $iyear . '-' . $imonth . '-' . $iday . " 5:00";
+    $tmp_date = $iyear . '-' . $imonth . '-' . $iday . " 17:00";
     $date = new DateTime($tmp_date);
     $caldate_timestamp = $date->getTimestamp();
 
@@ -259,29 +259,21 @@ class HebrewCalendar {
 
       require_once('utils/util_custom_fields.php');
 
-      $custom_field_group_label = "Calendar Preferences";
       $customFieldLabels = array();
-
       $custom_field_zenith_label = "Zenith Used to Calculate Sunset";
       $customFieldLabels[] = $custom_field_zenith_label;
-
       $custom_field_minutes_offset = "Number of Minutes Offset";
       $customFieldLabels[] = $custom_field_minutes_offset;
-
       $custom_fields_candle_offset = "Number of Minutes before sundown to light candles";
       $customFieldLabels[] = $custom_fields_candle_offset;
 
       $outCustomColumnNames = array();
+      getCustomTableFieldNames("Calendar Preferences", $customFieldLabels, $sql_table_name, $outCustomColumnNames);
 
-      getCustomTableFieldNames($custom_field_group_label, $customFieldLabels, $sql_table_name, $outCustomColumnNames);
-
-      $sql_zenith_field = $outCustomColumnNames[$custom_field_zenith_label];
-      $sql_minutes_offset_field_field = $outCustomColumnNames[$custom_field_minutes_offset];
-      $sql_minutes_candle_offset_field = $outCustomColumnNames[$custom_fields_candle_offset];
       $sql = "
-        Select geo_code_1, geo_code_2, $sql_zenith_field as zenith,
-          $sql_minutes_offset_field_field as minutes_offset,
-          $sql_minutes_candle_offset_field as candle_offset
+        Select geo_code_1, geo_code_2, {$outCustomColumnNames[$custom_field_zenith_label]} as zenith,
+          {$outCustomColumnNames[$custom_field_minutes_offset]} as minutes_offset,
+          {$outCustomColumnNames[$custom_fields_candle_offset]} as candle_offset
           from civicrm_contact AS contact_a
           left join civicrm_address on contact_a.id = civicrm_address.contact_id
           left join civicrm_state_province on civicrm_address.state_province_id = civicrm_state_province.id
@@ -290,13 +282,8 @@ class HebrewCalendar {
           contact_a.contact_sub_type =  'Primary_Organization' AND
           civicrm_address.is_primary = 1
           order by contact_a.id ";
-dsm($sql, 'sql');
-
-// print "<br>sunset sql: ".$sql; 
       $dao = & CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
-
       if ($dao->fetch()) {
-dsm($dao, 'dao');
         $latitude = $dao->geo_code_1;
         $longitude = $dao->geo_code_2;
         $zenith = $dao->zenith ?: 89.2;
@@ -314,55 +301,26 @@ dsm($dao, 'dao');
       $dateTimeLocal = new DateTime($tmp_date, $local_timezone);
       $tmp_off = timezone_offset_get($local_timezone, $dateTimeUTC);
       $tmp_UTC_offset = round($tmp_off / 3600);
-//      $sunset_time = date_sunset($caldate_timestamp, SUNFUNCS_RET_STRING, $latitude, $longitude, $zenith, $tmp_UTC_offset);
 
-//      $working_time_orig = date_sunset($caldate_timestamp, SUNFUNCS_RET_TIMESTAMP, $latitude, $longitude, $zenith, $tmp_UTC_offset);
+      // Get sunset time based on date, lat/long, zenith
+      $sunset_time = date_sunset($caldate_timestamp, SUNFUNCS_RET_TIMESTAMP, $latitude, $longitude, $zenith, $tmp_UTC_offset);
+      $sunset_time += ($minutes_offset * 60);
 
-      $sunset_time_str = date_sunset($caldate_timestamp, SUNFUNCS_RET_STRING, $latitude, $longitude, $zenith, $tmp_UTC_offset);
-
-      // Add in configured offset.
-//      $working_time_adj = strtotime("+$minutes_offset", $working_time_orig);
-//      $format_sunset_time = date('g:i', $working_time_adj);
-
-
-//      $working_candle_time = strtotime("+$candle_offset minutes", $working_time_adj);
-//      $format_candle_time = date('g:i', $working_candle_time);
-
-      $am_pm_symbol = 'pm'; // sunset and candle-lighting are only in the evening.
-
-      // Format sunset time as hours and minutes.
-//      $sunset_hour = floor($sunset_time);
-//      $tmp_min = $sunset_time - $sunset_hour;
-
-//      $sunset_minutes = round($tmp_min * 60);
-
-//      $sunset_minutes_adjusted = $sunset_minutes + $minutes_offset;
-
-//FIXME: looks like candle time offset is not used. just trace backwards from
-//`return $output_time_formated` to see how $output_time_formated is determined
-//for candles.
-
-      $candle_time_array = explode(":", $sunset_time_str);
-      $sunset_hour = $candle_time_array[0];
-      $sunset_min = $candle_time_array[1];
-
-
-      if ($sunset_hour > 12) {
-        $sunset_hour = $sunset_hour - 12;
+      switch ($sunset_or_candle) {
+        case 'sunset':
+          $output_time = $sunset_time;
+          break;
+        case 'candle':
+          $output_time = $sunset_time + ($candle_offset * -60);
+          break;
+        default:
+          // This should never happen.
+          return NULL;
       }
 
-      $sunset_time_formated = $sunset_hour . ':' . $sunset_min . $am_pm_symbol;
-      $output_time_formated = $sunset_time_formated;
-
-      if ($sunset_or_candle == 'candle') {
-        $minutes_before_sunset = '18 minutes';
-        $tmp_1 = date_create('2000-10-18' . ' ' . $sunset_hour . ':' . $sunset_min);
-        date_sub($tmp_1, date_interval_create_from_date_string($minutes_before_sunset));
-        $tmp_2 = date_format($tmp_1, 'g:i');
-        $output_time_formated = $tmp_2 . $am_pm_symbol;
-      }
-    } else {
-      //$sunset_time_formated;
+      $output_time_formated = date('g:i a', $output_time);
+      dsm($output_time, '$output_time');
+      dsm($output_time_formated, '$output_time_formated');
     }
 
 
