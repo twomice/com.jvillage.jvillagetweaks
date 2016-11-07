@@ -10,6 +10,13 @@ class CRM_Jmanage_Utils_Timezone {
    * FIXME: this function has DST problems. The hardcoded tz work around this.
    */
   static function drupal6_offset_to_tz($offset) {
+    // Available if the "date_timezone" module is configured?
+    $tz_name = variable_get('date_default_timezone_name');
+
+    if ($tz_name) {
+      return $tz_name;
+    }
+
     // Hardcode a few obvious ones.
     $hardcoded = [
       -18000 => 'America/Chicago',
