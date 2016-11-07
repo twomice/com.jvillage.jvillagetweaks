@@ -11,7 +11,7 @@ class CRM_Jmanage_Utils_Timezone {
    */
   static function drupal6_offset_to_tz($offset) {
     // Available if the "date_timezone" module is configured?
-    $tz_name = variable_get('date_default_timezone_name');
+    $tz_name = variable_get('date_default_timezone_name', NULL);
 
     if ($tz_name) {
       return $tz_name;
