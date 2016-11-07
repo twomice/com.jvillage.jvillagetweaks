@@ -4,20 +4,27 @@ class CRM_Jmanage_Utils_Check_Timestamps {
   function check(&$messages) {
     $error = FALSE;
 
-    $t = new CRM_Utils_Check_Component_Env();
-    $msg = $t->checkMysqlTime();
+    //CRM-19115 - Always set MySQL time before checking it.
+    CRM_Core_Config::singleton()->userSystem->setMySQLTimeZone();
 
-    $messages = array_merge($msg, $messages);
+    $phpNow = date('Y-m-d H:i');
+    $sqlNow = CRM_Core_DAO::singleValueQuery("SELECT date_format(now(), '%Y-%m-%d %H:%i')");
 
-    if (empty($msg)) {
-      $phpNow = date('Y-m-d H:i');
-      $sqlNow = CRM_Core_DAO::singleValueQuery("SELECT date_format(now(), '%Y-%m-%d %H:%i')");
-
+    if ($phpNow == $sqlNow) {
       $messages[] = new CRM_Utils_Check_Message(
         'jvillagetweaks_timestamps',
         ts('PHP/MySQL timestamps are OK: PHP %1 vs MySQL %2', array(1 => $phpNow, 2 => $sqlNow)),
         ts('Timestamps'),
         \Psr\Log\LogLevel::INFO,
+        'fa-check'
+      );
+    }
+    else {
+      $messages[] = new CRM_Utils_Check_Message(
+        'jvillagetweaks_timestamps',
+        ts('PHP/MySQL timestamps ERROR: PHP %1 vs MySQL %2', array(1 => $phpNow, 2 => $sqlNow)),
+        ts('Timestamps'),
+        \Psr\Log\LogLevel::CRITICAL,
         'fa-check'
       );
     }

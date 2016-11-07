@@ -6,12 +6,16 @@ class CRM_Jmanage_Utils_Timezone {
    *
    * This is a quick dirty hack and not sure if it's an upstream bug, since we only
    * started encountering it after 4.7.12, but might have become visible for other reasons.
+   *
+   * FIXME: this function has DST problems. The hardcoded tz work around this.
    */
   static function drupal6_offset_to_tz($offset) {
     // Hardcode a few obvious ones.
     $hardcoded = [
       -18000 => 'America/Chicago',
+      -18000 => 'America/Chicago',
       -14400 => 'America/New_York',
+      -25200 => 'America/Vancouver',
       39600 => 'Australia/Sydney',
     ];
 
