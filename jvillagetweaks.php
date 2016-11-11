@@ -3,6 +3,33 @@
 require_once 'jvillagetweaks.civix.php';
 
 /**
+ * Implements hook_civicrm_validateForm().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_validateForm
+ */
+function jvillagetweaks_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
+  dsm($formName, 'formname');
+  if ($formName == 'CRM_Contribute_Form_Contribution') {
+//  dsm(func_get_args(), __FUNCTION__);
+    $data = &$form->controller->container();
+
+    dsm($fields, '$fields');
+    dsm($data['values']['Contribution']['billing_street_address-5'], 'street');
+    dsm($data['values']['Contribution']['billing_city-5'], 'city');
+    dsm($data['values']['Contribution']['billing_country_id-5'], 'country');
+    dsm($data['values']['Contribution']['billing_state_province_id-5'], 'state');
+    dsm($data['values']['Contribution']['billing_postal_code-5'], 'postalcode');
+
+    unset($data['values']['Contribution']['billing_street_address-5']);
+    unset($data['values']['Contribution']['billing_city-5']);
+    unset($data['values']['Contribution']['billing_country_id-5']);
+    unset($data['values']['Contribution']['billing_state_province_id-5']);
+    unset($data['values']['Contribution']['billing_postal_code-5']);
+  }
+
+}
+
+/**
  * Implements hook_civicrm_config().
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_config
