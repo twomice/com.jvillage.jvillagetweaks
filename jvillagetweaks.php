@@ -254,6 +254,22 @@ function jvillagetweaks_civicrm_buildForm($formName, &$form) {
       $e->unfreeze();
     }
   }
+  elseif ($formName == 'CRM_Contribute_Form_Contribution') {
+    // Only when creating a new credit card contribution in the back-office area.
+    if (
+      $form->action = CRM_Core_Action::ADD
+      && $form->isBackOffice == 1
+      && array_key_exists('billing_street_address-5', $form->_paymentFields)
+    ) {
+      // Add JavaScript to facilitate on-screen alerts and address swapping
+      // when Third Party Payor is selected.
+      $custom_field_info = _jvillagetweaks_get_custom_field_info('Extra Contribution Info', 'Third Party Payor');
+      CRM_Core_Resources::singleton()->addVars('jvillagetweaks', array(
+        'thirdpartypayor_custom_field_id' => $custom_field_info['field_id'],
+      ));
+      CRM_Core_Resources::singleton()->addScriptFile('com.jvillage.jvillagetweaks', 'js/jvillagetweaks.third-party-payor.js');
+    }
+  }
 }
 
 /**
