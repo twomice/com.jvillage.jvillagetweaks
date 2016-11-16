@@ -8,25 +8,87 @@ require_once 'jvillagetweaks.civix.php';
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_validateForm
  */
 function jvillagetweaks_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
-  dsm($formName, 'formname');
-  if ($formName == 'CRM_Contribute_Form_Contribution') {
-//  dsm(func_get_args(), __FUNCTION__);
-    $data = &$form->controller->container();
-
-    dsm($fields, '$fields');
-    dsm($data['values']['Contribution']['billing_street_address-5'], 'street');
-    dsm($data['values']['Contribution']['billing_city-5'], 'city');
-    dsm($data['values']['Contribution']['billing_country_id-5'], 'country');
-    dsm($data['values']['Contribution']['billing_state_province_id-5'], 'state');
-    dsm($data['values']['Contribution']['billing_postal_code-5'], 'postalcode');
-
-    unset($data['values']['Contribution']['billing_street_address-5']);
-    unset($data['values']['Contribution']['billing_city-5']);
-    unset($data['values']['Contribution']['billing_country_id-5']);
-    unset($data['values']['Contribution']['billing_state_province_id-5']);
-    unset($data['values']['Contribution']['billing_postal_code-5']);
+  // Only when creating a new credit card contribution in the back-office area.
+  if (
+    $formName == 'CRM_Contribute_Form_Contribution'
+    && $form->action = CRM_Core_Action::ADD
+    && $form->isBackOffice == 1 
+    && array_key_exists('billing_street_address-5', $form->_paymentFields)
+  ) {
+    // Only if Third Party Payor is given:
+    $custom_field_info = _jvillagetweaks_get_custom_field_info('Extra Contribution Info', 'Third Party Payor');
+    if (!empty($custom_field_info['field_id']) && !empty($fields["custom_{$custom_field_info['field_id']}_-1"])) {
+      // Prevent billing address fields from being saved for this contact;
+      // store them in the form, to be written elsewhere to the billing address
+      // of the Third Party Payor contact (see jvillagetweaks_civicrm_postProcess).
+      //
+      // From the hook documentation:
+      // "The hook is intended for validation rather than altering form values.
+      // However, should you need to alter submitted values you need to access the
+      // controller container object"
+      $data = &$form->controller->container();
+      $field_keys = array(
+        'billing_street_address-5',
+        'billing_city-5',
+        'billing_country_id-5',
+        'billing_state_province_id-5',
+        'billing_postal_code-5',
+      );
+      $payor_billing_address_fields = array();
+      foreach ($field_keys as $field_key) {
+        $payor_billing_address_fields[$field_key] = $data['values']['Contribution'][$field_key];
+        unset($data['values']['Contribution'][$field_key]);
+      }
+      $form->_jvillagetweaks_payor_billing_address_fields = $payor_billing_address_fields;
+    }
   }
+}
 
+
+/**
+ * Implements hook_civicrm_postProcess().
+ *
+ * @param string $formName
+ * @param CRM_Core_Form $form
+ */
+function jvillagetweaks_civicrm_postProcess($formName, &$form) {
+  // Only when creating a new credit card contribution in the back-office area.
+  if (
+    $formName == 'CRM_Contribute_Form_Contribution'
+    && $form->action = CRM_Core_Action::ADD
+    && $form->isBackOffice == 1
+    && array_key_exists('billing_street_address-5', $form->_paymentFields)
+  ) {
+    // Only if Third Party Payor is given:
+    $custom_field_info = _jvillagetweaks_get_custom_field_info('Extra Contribution Info', 'Third Party Payor');
+    if (!empty($custom_field_info['field_id']) && !empty($form->_submitValues["custom_{$custom_field_info['field_id']}_-1"])) {
+      $contact_id = $form->_submitValues["custom_{$custom_field_info['field_id']}_-1"];
+      // Get most recent billing address for Third Party Payor, if any.
+      $address_id = NULL;
+      $result = civicrm_api3('Address', 'get', array(
+        'sequential' => 1,
+        'location_type_id' => "Billing",
+        'contact_id' => $contact_id,
+        'options' => array('sort' => "id desc"),
+      ));
+      if ($result['count']) {
+        $address_id = $result['values'][0]['id'];
+      }
+
+      // Update or save billing address.
+      $result = civicrm_api3('Address', 'create', array(
+        'contact_id' => $contact_id,
+        'id' => $address_id,
+        'location_type_id' => "Billing",
+        'street_address' => $form->_jvillagetweaks_payor_billing_address_fields['billing_street_address-5'],
+        'city' => $form->_jvillagetweaks_payor_billing_address_fields['billing_city-5'],
+        'country_id' => $form->_jvillagetweaks_payor_billing_address_fields['billing_country_id-5'],
+        'state_province_id' => $form->_jvillagetweaks_payor_billing_address_fields['billing_state_province_id-5'],
+        'postal_code' => $form->_jvillagetweaks_payor_billing_address_fields['billing_postal_code-5'],
+        'is_billing' => 1,
+      ));
+    }
+  }
 }
 
 /**
@@ -238,4 +300,44 @@ function jvillagetweaks_civicrm_check(&$messages) {
       $class->check($messages);
     }
   }
+}
+
+/**
+ * Get relevant metadata for a given custom-group/custom-field pair.
+ * FIXME: This should probably be in a utility class somewhere (or maybe it
+ * is already, somewhere).
+ *
+ * @param String $group_title Title of the custom group.
+ * @param String $field_title Label of the custom field.
+ * @return Keyed array of relevant metadata, each value defaulting to '' (empty string)
+ *   if no matching field is found:
+ *   'group_id': CiviCR system ID of the custom group
+ *   'field_id': CiviCR system ID of the custom field
+ */
+function _jvillagetweaks_get_custom_field_info($group_title, $field_title) {
+  static $cache;
+  $key = "{$group_title}{$field_title}";
+  if (!array_key_exists($key, $cache)) {
+    // Default values are blank, in case no matching group/field is found.
+    $cache[$key] = array(
+      'group_id' => '',
+      'field_id' => '',
+    );
+    $result = civicrm_api3('CustomGroup', 'getsingle', array(
+      'title' => $group_title,
+    ));
+    if (!empty($result['id'])) {
+      $custom_group_id = $result['id'];
+      $result = civicrm_api3('CustomField', 'getsingle', array(
+        'sequential' => 1,
+        'custom_group_id' => $custom_group_id,
+        'label' => $field_title,
+      ));
+      if (!empty($result['id'])) {
+        $cache[$key]['group_id'] = $custom_group_id;
+        $cache[$key]['field_id'] = $result['id'];
+      }
+    }
+  }
+  return $cache[$key];
 }
