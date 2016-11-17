@@ -106,6 +106,12 @@ function jvillagetweaks_civicrm_config(&$config) {
     $root = '/var/aegir/platforms/civicrm-4.7d6';
   }
 
+  // The above is a silly assumption for prod, but on dev platforms
+  // this can be very annoying (ex: redmine:1164).
+  if (! empty($_SERVER['DOCUMENT_ROOT'])) {
+    $root = $_SERVER['DOCUMENT_ROOT'];
+  }
+
   // redmine:766
   // Even if this is set above, it was not being set correctly in
   // packages/kcfinder/integration/civicrm.php
