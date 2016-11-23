@@ -22,6 +22,8 @@ CRM.$(document).ajaxComplete(function( event, xhr, settings ) {
 
 // Intended value of the "State" field. This value must be held temporarily and
 // applied to the field only after the Country field is updated.
+// FIXME: Better if this is not global, but somehow couldn't get it to work as
+// a property of the jvillagetweaks_thirdpartypayor oject. Race condition? Scope?
 var jvillagetweaks_thirdpartypayor_pendingStateId;
 
 // Object defining methods to handle Third Party Payor field changes.
@@ -31,7 +33,10 @@ var jvillagetweaks_thirdpartypayor = {
    * of the Country field.
    */
   setPendingState: function() {
-    CRM.$('#billing_state_province_id-5').val(jvillagetweaks_thirdpartypayor_pendingStateId).change();
+    if (jvillagetweaks_thirdpartypayor_pendingStateId) {
+      CRM.$('#billing_state_province_id-5').val(jvillagetweaks_thirdpartypayor_pendingStateId).change();
+      jvillagetweaks_thirdpartypayor_pendingStateId = '';
+    }
   },
 
   /**
@@ -52,6 +57,16 @@ var jvillagetweaks_thirdpartypayor = {
    * Respond to changes in the value of the Third Party Payor field.
    */
   update: function (contact_id) {
+    // For any change in the third party payor value, clear all relevant fields.
+    CRM.$('#billing_street_address-5').val('').change();
+    CRM.$('#billing_city-5').val('').change();
+    CRM.$('#billing_state_province_id-5').val('').change();
+    CRM.$('#billing_country_id-5').val('').change();
+    CRM.$('#billing_postal_code-5').val('').change();
+    CRM.$('#billing_first_name').val('').change();
+    CRM.$('#billing_middle_name').val('').change();
+    CRM.$('#billing_last_name').val('').change();
+
     if (!contact_id) {
       // If no Third Party Payor contact is selected, revert billing address
       // fields to their original values, remove on-screen alerts, and
