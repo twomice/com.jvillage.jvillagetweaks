@@ -20,7 +20,7 @@ class CRM_Jmanage_Utils_Check_MailingsPending {
       $messages[] = new CRM_Utils_Check_Message(
         'jvillagetweaks_mailingspending',
         ts('No mailings are pending to be processed.'),
-        ts('Mailings pending'),
+        ts('Mailings OK'),
         \Psr\Log\LogLevel::INFO,
         'fa-check'
       );
@@ -53,7 +53,7 @@ class CRM_Jmanage_Utils_Check_MailingsPending {
       $messages[] = new CRM_Utils_Check_Message(
         'jvillagetweaks_mailingspending',
         ts('Mailings have been waiting to be processed for the past %1 minutes.', array(1 => $delta)),
-        ts('Mailings OK'),
+        ts('Mailings pending'),
         \Psr\Log\LogLevel::CRITICAL,
         'fa-flag'
       );

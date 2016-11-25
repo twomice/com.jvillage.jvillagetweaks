@@ -25,7 +25,7 @@ class CRM_Jmanage_Utils_Check_Timestamps {
       $messages[] = new CRM_Utils_Check_Message(
         'jvillagetweaks_timestamps',
         ts('PHP/MySQL timestamps ERROR: PHP %1 vs MySQL %2, timezone = %3', array(1 => $phpNow, 2 => $sqlNow, 3 => $tzstring)),
-        ts('Timestamps'),
+        ts('Please send this to Jvillage in a support ticket: Timestamps: PHP %1, MySQL %2, tz %3', array(1 => $phpNow, 2 => $sqlNow, 3 => $tzstring)),
         \Psr\Log\LogLevel::CRITICAL,
         'fa-check'
       );
