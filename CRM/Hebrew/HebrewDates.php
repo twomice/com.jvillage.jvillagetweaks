@@ -928,7 +928,7 @@ class HebrewCalendar {
    * TODO - document
    */
   function util_get_bar_bat_mizvah_date(&$iyear, &$imonth, &$iday, &$ibeforesunset, &$erev_start_flag, &$bar_bat_mitzvah_flag, &$gregorian_date_format) {
-    date_default_timezone_set('America/Chicago');
+    # date_default_timezone_set('America/Chicago');
     $heb_format_tmp = 'mm/dd/yy';
     $birthdate_hebrew = self::util_convert2hebrew_date($iyear, $imonth, $iday, $ibeforesunset, $heb_format_tmp);
 
