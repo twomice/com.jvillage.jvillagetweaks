@@ -29,12 +29,14 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
     $this->_columns = array(
       'civicrm_contact' => array(
         'fields' => array(
-          'sort_name' => array(
+          'deceased_sort_name' => array(
             'title' => ts('Deceased Name (sortable)'),
+            'name' => 'sort_name',
             'default' => TRUE,
           ),
-          'display_name' => array(
+          'deceased_display_name' => array(
             'title' => ts('Deceased Name (formatted)'),
+            'name' => 'display_name',
             'default' => TRUE,
           ),
           'nick_name' => array(
@@ -51,12 +53,14 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
       'civicrm_contact_mourner' => array(
         'dao' => 'CRM_Contact_DAO_Contact',
         'fields' => array(
-          'sort_name' => array(
+          'mourner_sort_name' => array(
             'title' => ts('Mourner Name'),
+            'name' => 'sort_name',
             'default' => TRUE,
           ),
-          'display_name' => array(
+          'mourner_display_name' => array(
             'title' => ts('Mourner Display Name'),
+            'name' => 'display_name',
             'default' => TRUE,
           ),
           'first_name' => array(
@@ -102,8 +106,9 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
       ),
       'civicrm_contact_household' => array(
         'fields' => array(
-          'display_name' => array(
+          'household_display_name' => array(
             'title' => ts('Mourner Household Name'),
+            'name' => 'display_name',
             'default' => TRUE,
           ),
           'id' => array(
@@ -141,7 +146,7 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
       'civicrm_email' => array(
         'fields' => array(
           'email' => array(
-            'title' => ts('Email'),
+            'title' => ts('Mourner Email'),
             'default' => TRUE,
           ),
         ),
@@ -170,12 +175,14 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
             'title' => ts('Before Sunset?'),
             'default' => TRUE,
           ),
-          'yahrzeit_date' => array(
+          'yahrzeit_date_sortable' => array(
             'title' => ts('Yahrzeit Date (evening, sortable)'),
+            'name' => 'yahrzeit_date',
             'default' => TRUE,
           ),
-          'yahrzeit_date' => array(
+          'yahrzeit_date_formatted' => array(
             'title' => ts('Yahrzeit Date (evening, formatted)'),
+            'name' => 'yahrzeit_date',
             'default' => TRUE,
           ),
           'yahrzeit_date_morning' => array(
@@ -192,10 +199,6 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
           ),
           'yahrzeit_hebrew_date_format_english' => array(
             'title' => ts('Hebrew Yahrzeit Date'),
-            'default' => TRUE,
-          ),
-          'mourner_email' => array(
-            'title' => ts('Email'),
             'default' => TRUE,
           ),
           'yahrzeit_erev_shabbat_before' => array(
@@ -452,6 +455,16 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
   }
 
   function alterDisplay(&$rows) {
+    // Establish correct format for some dates.
+    switch (CRM_Utils_Date::getDateFormat()) {
+      case 'dd/mm/yy':
+        $nice_date_format = 'j F Y';
+        break;
+      case 'mm/dd/yy': 
+        $nice_date_format = 'F j, Y';
+        break;
+    }
+   
     // custom code to alter rows
     $entryFound = FALSE;
     $checkList = array();
@@ -492,6 +505,55 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
       if (array_key_exists('civicrm_address_country_id', $row)) {
         if ($value = $row['civicrm_address_country_id']) {
           $rows[$rowNum]['civicrm_address_country_id'] = CRM_Core_PseudoConstant::country($value, FALSE);
+        }
+        $entryFound = TRUE;
+      }
+
+      if (array_key_exists('pogstone_temp_yahrzeits_yahrzeit_date_morning', $row)) {
+        if ($value = $row['pogstone_temp_yahrzeits_yahrzeit_date_morning']) {
+          $rows[$rowNum]['pogstone_temp_yahrzeits_yahrzeit_date_morning'] = date($nice_date_format, strtotime($value));
+        }
+        $entryFound = TRUE;
+      }
+
+      if (array_key_exists('pogstone_temp_yahrzeits_yahrzeit_date_sortable', $row)) {
+        if ($value = $row['pogstone_temp_yahrzeits_yahrzeit_date_sortable']) {
+          $rows[$rowNum]['pogstone_temp_yahrzeits_yahrzeit_date_sortable'] = date('Y-m-d', strtotime($value));
+        }
+        $entryFound = TRUE;
+      }
+
+      if (array_key_exists('pogstone_temp_yahrzeits_yahrzeit_date_formatted', $row)) {
+        if ($value = $row['pogstone_temp_yahrzeits_yahrzeit_date_formatted']) {
+          $rows[$rowNum]['pogstone_temp_yahrzeits_yahrzeit_date_formatted'] = date($nice_date_format, strtotime($value));
+        }
+        $entryFound = TRUE;
+      }
+
+      if (array_key_exists('pogstone_temp_yahrzeits_yahrzeit_erev_shabbat_before', $row)) {
+        if ($value = $row['pogstone_temp_yahrzeits_yahrzeit_erev_shabbat_before']) {
+          $rows[$rowNum]['pogstone_temp_yahrzeits_yahrzeit_erev_shabbat_before'] = date($nice_date_format, strtotime($value));
+        }
+        $entryFound = TRUE;
+      }
+
+      if (array_key_exists('pogstone_temp_yahrzeits_yahrzeit_shabbat_morning_before', $row)) {
+        if ($value = $row['pogstone_temp_yahrzeits_yahrzeit_shabbat_morning_before']) {
+          $rows[$rowNum]['pogstone_temp_yahrzeits_yahrzeit_shabbat_morning_before'] = date($nice_date_format, strtotime($value));
+        }
+        $entryFound = TRUE;
+      }
+
+      if (array_key_exists('pogstone_temp_yahrzeits_yahrzeit_erev_shabbat_after', $row)) {
+        if ($value = $row['pogstone_temp_yahrzeits_yahrzeit_erev_shabbat_after']) {
+          $rows[$rowNum]['pogstone_temp_yahrzeits_yahrzeit_erev_shabbat_after'] = date($nice_date_format, strtotime($value));
+        }
+        $entryFound = TRUE;
+      }
+
+      if (array_key_exists('pogstone_temp_yahrzeits_yahrzeit_shabbat_morning_after', $row)) {
+        if ($value = $row['pogstone_temp_yahrzeits_yahrzeit_shabbat_morning_after']) {
+          $rows[$rowNum]['pogstone_temp_yahrzeits_yahrzeit_shabbat_morning_after'] = date($nice_date_format, strtotime($value));
         }
         $entryFound = TRUE;
       }
