@@ -29,7 +29,9 @@ class CRM_Jmanage_Utils_Check_SmtpPassword {
       if ($mailingInfo['outBound_option'] == CRM_Mailing_Config::OUTBOUND_OPTION_SMTP) {
         $password = CRM_Utils_Crypt::decrypt($mailingInfo['smtpPassword']);
 
-        if (preg_match("/[^!-~]/", $password)) {
+        // From ! to ~ matches [a-zA-Z0-9] and most symbols.
+        // and we also allow spaces in passwords.
+        if (preg_match("/[^!-~\s]/", $password)) {
           $error = TRUE;
           $messages[] = new CRM_Utils_Check_Message(
             'jvillagetweaks_smtppassword',
