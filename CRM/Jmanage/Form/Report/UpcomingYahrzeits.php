@@ -29,19 +29,23 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
     $this->_columns = array(
       'civicrm_contact' => array(
         'fields' => array(
+          'deceased_first_name' => array(
+            'title' => ts('Deceased First Name'),
+            'name' => 'first_name',
+            'default' => TRUE,
+          ),
+          'deceased_last_name' => array(
+            'title' => ts('Deceased Last Name'),
+            'name' => 'last_name',
+            'default' => TRUE,
+          ),
           'deceased_sort_name' => array(
             'title' => ts('Deceased Name (sortable)'),
             'name' => 'sort_name',
-            'default' => TRUE,
           ),
           'deceased_display_name' => array(
             'title' => ts('Deceased Name (formatted)'),
             'name' => 'display_name',
-            'default' => TRUE,
-          ),
-          'nick_name' => array(
-            'title' => ts('Deceased Nickname'),
-            'default' => TRUE,
           ),
           'id' => array(
             'no_display' => TRUE,
@@ -56,19 +60,17 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
           'mourner_sort_name' => array(
             'title' => ts('Mourner Name'),
             'name' => 'sort_name',
-            'default' => TRUE,
           ),
           'mourner_display_name' => array(
             'title' => ts('Mourner Display Name'),
             'name' => 'display_name',
-            'default' => TRUE,
           ),
           'first_name' => array(
-            'title' => ts('Mourner First name'),
+            'title' => ts('Mourner First Name'),
             'default' => TRUE,
           ),
           'last_name' => array(
-            'title' => ts('Mourner Last name'),
+            'title' => ts('Mourner Last Name'),
             'default' => TRUE,
           ),
           'id' => array(
@@ -104,41 +106,19 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
         ),
         'grouping' => 'contact-mourner-fields',
       ),
-      'civicrm_contact_household' => array(
-        'fields' => array(
-          'household_display_name' => array(
-            'title' => ts('Mourner Household Name'),
-            'name' => 'display_name',
-            'default' => TRUE,
-          ),
-          'id' => array(
-            'title' => ts('Mourner Household ID'),
-            'default' => TRUE,
-          ),
-        ),
-        'grouping' => 'contact-mourner-fields',
-      ),
       'civicrm_address' => array(
         'fields' => array(
           'street_address' => array(
             'title' => ts('Street Address'),
-            'default' => TRUE,
-          ),
-          'supplemental_address_1' => array(
-            'title' => ts('Supplemental Address'),
-            'default' => TRUE,
           ),
           'city' => array(
             'title' => ts('City'),
-            'default' => TRUE,
           ),
           'postal_code' => array(
             'title' => ts('Postal Code'),
-            'default' => TRUE,
           ),
           'state_province_id' => array(
             'title' => ts('State/Province'),
-            'default' => TRUE,
           ),
         ),
         'grouping' => 'contact-mourner-fields',
@@ -147,7 +127,6 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
         'fields' => array(
           'email' => array(
             'title' => ts('Mourner Email'),
-            'default' => TRUE,
           ),
         ),
         'grouping' => 'contact-mourner-fields',
@@ -156,7 +135,6 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
         'fields' => array(
           'phone' => array(
             'title' => ts('Phone'),
-            'default' => TRUE,
           ),
         ),
         'grouping' => 'contact-mourner-fields',
@@ -173,12 +151,10 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
           ),
           'd_before_sunset' => array(
             'title' => ts('Before Sunset?'),
-            'default' => TRUE,
           ),
           'yahrzeit_date_sortable' => array(
             'title' => ts('Yahrzeit Date (evening, sortable)'),
             'name' => 'yahrzeit_date',
-            'default' => TRUE,
           ),
           'yahrzeit_date_formatted' => array(
             'title' => ts('Yahrzeit Date (evening, formatted)'),
@@ -187,35 +163,29 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
           ),
           'yahrzeit_date_morning' => array(
             'title' => ts('Yahrzeit Date (morning, formatted)'),
-            'default' => TRUE,
           ),
           'relationship_name_formatted' => array(
             'title' => ts('Relationship to Mourner'),
-            'default' => TRUE,
-          ),
-          'yahrzeit_hebrew_date_format_hebrew' => array(
-            'title' => ts('Hebrew Yahrzeit Date (Hebrew format)'),
             'default' => TRUE,
           ),
           'yahrzeit_hebrew_date_format_english' => array(
             'title' => ts('Hebrew Yahrzeit Date'),
             'default' => TRUE,
           ),
+          'yahrzeit_hebrew_date_format_hebrew' => array(
+            'title' => ts('Hebrew Yahrzeit Date (Hebrew format)'),
+          ),
           'yahrzeit_erev_shabbat_before' => array(
             'title' => ts('Friday Night Before Yahrzeit'),
-            'default' => TRUE,
           ),
           'yahrzeit_shabbat_morning_before' => array(
             'title' => ts('Saturday Morning Before Yahrzeit'),
-            'default' => TRUE,
           ),
           'yahrzeit_erev_shabbat_after' => array(
             'title' => ts('Friday Night After Yahrzeit'),
-            'default' => TRUE,
           ),
           'yahrzeit_shabbat_morning_after' => array(
             'title' => ts('Saturday Morning After Yahrzeit'),
-            'default' => TRUE,
           ),
         ),
         'filters' => array(
@@ -248,22 +218,6 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
             'title' => ts('Saturday Morning After Yahrzeit'),
             'operatorType' => CRM_Report_Form::OP_DATE,
             'type' => CRM_Utils_Type::T_DATE,
-          ),
-        ),
-      ),
-      'civicrm_relationship' => array(
-        'fields' => array(
-          'description' => array(
-            'title' => ts('Relationship Description'),
-            'default' => TRUE,
-          ),
-        ),
-      ),
-      'civicrm_note' => array(
-        'fields' => array(
-          'note' => array(
-            'title' => ts('Relationship Note'),
-            'default' => TRUE,
           ),
         ),
       ),
@@ -343,27 +297,6 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
          LEFT JOIN civicrm_address {$this->_aliases['civicrm_address']}
               ON {$this->_aliases[$this->_yahrzeit_table]}.mourner_contact_id =
                  {$this->_aliases['civicrm_address']}.contact_id AND {$this->_aliases['civicrm_address']}.is_primary
-       ";
-    }
-    if ($this->isTableSelected('civicrm_contact_household')) {
-      $this->_from .= "
-         LEFT JOIN civicrm_relationship rh
-              ON rh.contact_id_a = {$this->_aliases['civicrm_contact_mourner']}.id AND rh.relationship_type_id = '{$this->_relationship_types['Household Member of']}'
-         LEFT JOIN civicrm_contact {$this->_aliases['civicrm_contact_household']}
-              ON rh.contact_id_b = {$this->_aliases['civicrm_contact_household']}.id
-      ";
-    }
-    if ($this->isTableSelected('civicrm_relationship') || $this->isTableSelected('civicrm_note')) {
-      $this->_from .= "
-         LEFT JOIN civicrm_relationship {$this->_aliases['civicrm_relationship']}
-          ON {$this->_aliases['civicrm_relationship']}.id = {$this->_aliases[$this->_yahrzeit_table]}.yahrzeit_relationship_id
-       ";
-    }
-    if ($this->isTableSelected('civicrm_note')) {
-      $this->_from .= "
-         LEFT JOIN civicrm_note {$this->_aliases['civicrm_note']}
-              ON {$this->_aliases['civicrm_note']}.entity_table = 'civicrm_relationship'
-                AND {$this->_aliases['civicrm_note']}.entity_id = {$this->_aliases['civicrm_relationship']}.id
        ";
     }
     if ($this->isTableSelected('civicrm_membership') || $this->isTableSelected('civicrm_membership_type')) {
