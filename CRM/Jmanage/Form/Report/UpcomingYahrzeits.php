@@ -221,6 +221,15 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
           ),
         ),
       ),
+      'civicrm_relationship' => array(
+        'fields' => array(
+          'relationship_id' => array(
+            'no_display' => TRUE,
+            'name' => 'id',
+            'required' => TRUE,
+          ),
+        ),
+      ),
       'civicrm_membership' => array(
         'filters' => array(
           'membership_type_id' => array(
@@ -297,6 +306,12 @@ class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
          LEFT JOIN civicrm_address {$this->_aliases['civicrm_address']}
               ON {$this->_aliases[$this->_yahrzeit_table]}.mourner_contact_id =
                  {$this->_aliases['civicrm_address']}.contact_id AND {$this->_aliases['civicrm_address']}.is_primary
+       ";
+    }
+    if ($this->isTableSelected('civicrm_relationship')) {
+      $this->_from .= "
+         LEFT JOIN civicrm_relationship {$this->_aliases['civicrm_relationship']}
+          ON {$this->_aliases['civicrm_relationship']}.id = {$this->_aliases[$this->_yahrzeit_table]}.yahrzeit_relationship_id
        ";
     }
     if ($this->isTableSelected('civicrm_membership') || $this->isTableSelected('civicrm_membership_type')) {
