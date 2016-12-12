@@ -1,6 +1,6 @@
 <?php
 
-class CRM_Jmanage_Form_Report_UpcomingYahrzeits extends CRM_Report_Form {
+class CRM_Jmanage_Form_Report_Yahrzeits extends CRM_Report_Form {
 
   protected $_addressField = FALSE;
 

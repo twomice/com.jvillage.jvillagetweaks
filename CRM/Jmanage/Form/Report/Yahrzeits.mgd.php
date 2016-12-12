@@ -11,10 +11,10 @@ return array (
     'params' => 
     array (
       'version' => 3,
-      'label' => 'Upcoming Yahrzeits',
-      'description' => 'Upcoming Yahrzeits (com.jvillage.jvillagetweaks)',
-      'class_name' => 'CRM_Jmanage_Form_Report_UpcomingYahrzeits',
-      'report_url' => 'com.jvillage.jvillagetweaks/upcomingyahrzeits',
+      'label' => 'Yahrzeit Report',
+      'description' => 'Yahrzeit Report',
+      'class_name' => 'CRM_Jmanage_Form_Report_Yahrzeits',
+      'report_url' => 'com.jvillage.jvillagetweaks/yahrzeits',
       'component' => '',
     ),
   ),
