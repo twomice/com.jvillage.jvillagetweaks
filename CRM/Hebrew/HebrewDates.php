@@ -529,8 +529,13 @@ class HebrewCalendar {
     require_once('utils/util_custom_fields.php');
 
     // Process "yahrzeit.all" token if in use.
-    if (in_array(preg_replace('/^yahrzeit\./', '', $token_strings['all']), $tokens['yahrzeit'])) {
+    $token_strings_trimmed = preg_replace('/^yahrzeit\./', '', $token_strings);
+    dsm($token_strings, 'strings');
+    dsm($token_strings_trimmed, 'strings trimmed');
+    dsm($tokens['yahrzeit'], 'yahrzeit tokens');
+    dsm($tokens['yahrzeit']["yahrzeit.{$token_strings['all']}"], 'yahrzeit tokens . all');
 
+    if (in_array($token_strings_trimmed['all'], $tokens['yahrzeit'])) {
       $yizkor_sql_str = "SELECT DISTINCT mourner_contact_id as contact_id, mourner_contact_id as id, mourner_name as sort_name, deceased_name as deceased_name,
       deceased_display_name as deceased_display_name, deceased_contact_id, mourner_email as email , contact_b.deceased_date,
       contact_b.deceased_date as ddate,
@@ -609,6 +614,13 @@ class HebrewCalendar {
         $cur_cid_html = $cur_cid_html . $html_table_end;
         $values[$prev_cid][$token_strings['all']] = $cur_cid_html;
       }
+    }
+    if (in_array($token_strings_trimmed['all_template'], $tokens['yahrzeit'])) {
+      dsm(__LINE__);
+      unset($tokens['yahrzeit'][$token_strings_trimmed['all_template']]);
+      // TODO: parse whatever template is configured in all_template setting,
+      // and store parsed value in $values. For template parsing example, see
+      // extensions org.civicoop.emailapi:/api/v3/Email/Send.php::civicrm_api3_email_send().
     }
 
 
