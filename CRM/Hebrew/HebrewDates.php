@@ -627,7 +627,7 @@ class HebrewCalendar {
     $yahrzeit_filter_dates = array();
     foreach ($tokens['yahrzeit'] as $token) {
       preg_match("/^{$days_advance_token_string}([0-9]+)/", $token, $matches);
-      if (!empty($matches[1])) {
+      if (count($matches[1])) {
         $yahrzeit_filter_dates[] = $matches[1];
       }
     }

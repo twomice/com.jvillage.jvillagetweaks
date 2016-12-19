@@ -119,6 +119,7 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
       '10' => '10 Months From Now',
       '11' => '11 Months From Now',
       '12' => '12 Months From Now',
+      '0_d' => 'Today',
       '1_d' => 'Tomorrow',
       '2_d' => 'In 2 days',
       '3_d' => 'In 3 days',
