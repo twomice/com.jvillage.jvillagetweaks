@@ -530,10 +530,6 @@ class HebrewCalendar {
 
     // Process "yahrzeit.all" token if in use.
     $token_strings_trimmed = preg_replace('/^yahrzeit\./', '', $token_strings);
-    dsm($token_strings, 'strings');
-    dsm($token_strings_trimmed, 'strings trimmed');
-    dsm($tokens['yahrzeit'], 'yahrzeit tokens');
-    dsm($tokens['yahrzeit']["yahrzeit.{$token_strings['all']}"], 'yahrzeit tokens . all');
 
     if (in_array($token_strings_trimmed['all'], $tokens['yahrzeit'])) {
       $yizkor_sql_str = "SELECT DISTINCT mourner_contact_id as contact_id, mourner_contact_id as id, mourner_name as sort_name, deceased_name as deceased_name,
@@ -616,19 +612,18 @@ class HebrewCalendar {
       }
     }
     if (in_array($token_strings_trimmed['all_template'], $tokens['yahrzeit'])) {
-      dsm(__LINE__);
       unset($tokens['yahrzeit'][$token_strings_trimmed['all_template']]);
-      // TODO: parse whatever template is configured in all_template setting,
-      // and store parsed value in $values. For template parsing example, see
-      // extensions org.civicoop.emailapi:/api/v3/Email/Send.php::civicrm_api3_email_send().
+      $values[$prev_cid][$token_strings['all_template']] = $this->_parseTemplate($prev_cid);
     }
-
 
     // Set default "no yahrzeits found" message for contacts without a value in the 'yahrzeit.all' token.
     foreach ($contactIDs as $cid) {
       if (array_key_exists($cid, $values)) {
         if ($values[$cid][$token_strings['all']] == "") {
           $values[$cid][$token_strings['all']] = $values[$cid][$token_strings['short']] = "No yahrzeits found.";
+        }
+        if ($values[$cid][$token_strings['all_template']] == "") {
+          $values[$cid][$token_strings['all_template']] = "No yahrzeits found.";
         }
       }
     }
@@ -760,7 +755,7 @@ class HebrewCalendar {
         if (in_array($dao->deceased_contact_id, $arr_dec_ids) == false) {
 
 
-
+// FIXME: remote this comma-delimited concatenation.
           $tmp_deceasedids_for_con[$cid] = $tmp_deceasedids_for_con[$cid] . ";" . $dao->deceased_contact_id;
           if (strlen($values[$cid][$token_strings['deceased_name']]) > 0) {
             $seper = $default_seperator;
@@ -1546,4 +1541,68 @@ class HebrewCalendar {
     return $tmp_return;
   }
 
+  function _parseTemplate($contact_id) {
+    // FIXME: add a loop to repeat this for each of the contact's yahrzeits.
+    $template_id = Civi::settings()->get('hebrewcalendar_yahrzeit_templated_message_id');
+    if (empty($template_id)) {
+      return '';
+    }
+
+    $messageTemplate = new CRM_Core_DAO_MessageTemplate();
+    $messageTemplate->id = $template_id;
+    if (!$messageTemplate->find(TRUE)) {
+      return '';
+    }
+
+    $domain     = CRM_Core_BAO_Domain::getDomain();
+
+    $body_text    = $messageTemplate->msg_text;
+    $body_html    = $messageTemplate->msg_html;
+    if (!$body_text) {
+      $body_text = CRM_Utils_String::htmlToText($body_html);
+    }
+
+    $params = array(array('contact_id', '=', $contact_id, 0, 0));
+    list($contact, $_) = CRM_Contact_BAO_Query::apiQuery($params);
+
+    //CRM-4524
+    $contact = reset($contact);
+
+    if (!$contact || is_a($contact, 'CRM_Core_Error')) {
+      throw new API_Exception('Could not find contact with ID: ' . $params['contact_id']);
+    }
+
+    // get tokens to be replaced
+    $tokens = array_merge(
+        CRM_Utils_Token::getTokens($body_text),
+        CRM_Utils_Token::getTokens($body_html)
+    );
+
+    // call token hook
+    $hookTokens = array();
+    CRM_Utils_Hook::tokens($hookTokens);
+    $categories = array_keys($hookTokens);
+
+    // do replacements in text and html body
+    $type = array('html', 'text');
+    foreach ($type as $key => $value) {
+      $bodyType = "body_{$value}";
+      if ($$bodyType) {
+        CRM_Utils_Token::replaceGreetingTokens($$bodyType, NULL, $contact_id);
+        $$bodyType = CRM_Utils_Token::replaceDomainTokens($$bodyType, $domain, true, $tokens, true);
+        $$bodyType = CRM_Utils_Token::replaceContactTokens($$bodyType, $contact, false, $tokens, false, true);
+        $$bodyType = CRM_Utils_Token::replaceComponentTokens($$bodyType, $contact, $tokens, true);
+        $$bodyType = CRM_Utils_Token::replaceHookTokens($$bodyType, $contact, $categories, true);
+      }
+    }
+    $html = $body_html;
+    $text = $body_text;
+
+    $smarty = CRM_Core_Smarty::singleton();
+    foreach ($type as $elem) {
+      $$elem = $smarty->fetch("string:{$$elem}");
+    }
+
+    return $html;
+  }
 }
