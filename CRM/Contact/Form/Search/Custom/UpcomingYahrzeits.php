@@ -348,7 +348,8 @@ class CRM_Contact_Form_Search_Custom_UpcomingYahrzeits extends CRM_Contact_Form_
           group_concat(distinct hh.display_name) as household_display_name,
           group_concat(distinct hh.id) as household_id,
           rd.description as relationship_description,
-          rnote.note as relationship_note
+          rnote.note as relationship_note,
+          contact_b.yahrzeit_relationship_id
           ";
 
     if ($onlyIDs) {

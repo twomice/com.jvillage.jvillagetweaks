@@ -611,22 +611,6 @@ class HebrewCalendar {
         $values[$prev_cid][$token_strings['all']] = $cur_cid_html;
       }
     }
-    if (in_array($token_strings_trimmed['all_template'], $tokens['yahrzeit'])) {
-      unset($tokens['yahrzeit'][$token_strings_trimmed['all_template']]);
-      $values[$prev_cid][$token_strings['all_template']] = $this->_parseTemplate($prev_cid);
-    }
-
-    // Set default "no yahrzeits found" message for contacts without a value in the 'yahrzeit.all' token.
-    foreach ($contactIDs as $cid) {
-      if (array_key_exists($cid, $values)) {
-        if ($values[$cid][$token_strings['all']] == "") {
-          $values[$cid][$token_strings['all']] = $values[$cid][$token_strings['short']] = "No yahrzeits found.";
-        }
-        if ($values[$cid][$token_strings['all_template']] == "") {
-          $values[$cid][$token_strings['all_template']] = "No yahrzeits found.";
-        }
-      }
-    }
 
     // Determine yahrzeit date based on yahrzeit.filter___days_advance_N token,
     // if it's in use.
@@ -638,7 +622,6 @@ class HebrewCalendar {
         $yahrzeit_filter_dates[] = $matches[1];
       }
     }
-
     $yahrzeit_filter_date = date('Ymd', strtotime('+' . min($yahrzeit_filter_dates) . 'days'));
 
     // Determine whether we're coming from the upcoming Yahrzeits custom search.
@@ -665,16 +648,9 @@ class HebrewCalendar {
     }
 
     // Populate tokens if possible.
-    if ($flag_is_custom_search && !empty($_SESSION['yahrzeit_sql'])) {
-      // If we're coming from the Yahrzeits custom search, use the SQL defined in
-      // that search to get values for all contacts returned in that search.
-      $yahrzeit_sql = $_SESSION['yahrzeit_sql'];
-      $yahrzeit_sql_params = CRM_Core_DAO::$_nullArray;
-    } elseif (!empty($yahrzeit_filter_date)) {
-      // If we're not coming from the Yahrzeit custom search, use the
-      // 'yahrzeit.filter___days_advance_N' filter to determine a date on which
-      // to check for yahrzeits, and work that into an SQL query that can be
-      // used to get the correct token values.
+    dsm($tokens, '$tokens');
+    if ($yahrzeit_id = self::getYahrzeitRelationshipIdForTemplate($tokens)) {
+dsm(__LINE__, 'sql defined here');
       $yahrzeit_sql = "
         SELECT
           contact_b.mourner_contact_id as contact_id,
@@ -701,6 +677,55 @@ class HebrewCalendar {
           AND ( contact_a.id is null OR contact_a.is_deleted <> 1 )
           AND ( contact_a.contact_type IN ( 'Household', 'Individual')  AND contact_a.is_deceased <> 1 )
           AND (yahrzeit_type = mourner_observance_preference)
+          AND contact_b.yahrzeit_relationship_id = %1
+          AND contact_b.mourner_contact_id in (" . implode(',', $contactIDs) . ")
+        GROUP BY mourner_contact_id, deceased_contact_id, yahrzeit_date
+        ORDER BY yahrzeit_date, deceased_name ASC
+      ";
+      $yahrzeit_sql_params = array(
+        1 => array($yahrzeit_id, 'Int'),
+      );
+    }
+    elseif ($flag_is_custom_search && !empty($_SESSION['yahrzeit_sql'])) {
+dsm(__LINE__, 'sql defined here');
+      // If we're coming from the Yahrzeits custom search, use the SQL defined in
+      // that search to get values for all contacts returned in that search.
+      $yahrzeit_sql = $_SESSION['yahrzeit_sql'];
+      $yahrzeit_sql_params = CRM_Core_DAO::$_nullArray;
+    }
+    elseif (!empty($yahrzeit_filter_date)) {
+dsm(__LINE__, 'sql defined here');
+      // If we're not coming from the Yahrzeit custom search, use the
+      // 'yahrzeit.filter___days_advance_N' filter to determine a date on which
+      // to check for yahrzeits, and work that into an SQL query that can be
+      // used to get the correct token values.
+      $yahrzeit_sql = "
+        SELECT
+          contact_b.mourner_contact_id as contact_id,
+          contact_b.deceased_contact_id as deceased_contact_id,
+          contact_b.mourner_name as sort_name,
+          contact_b.deceased_name as deceased_name,
+          contact_b.deceased_display_name as deceased_display_name,
+          date_format(contact_deceased.deceased_date, '%M %e, %Y' )  as deceased_date,
+          contact_b.yahrzeit_hebrew_date_format_hebrew,
+          contact_b.yahrzeit_hebrew_date_format_english,
+          contact_b.hebrew_deceased_date,
+          date_format(contact_b.yahrzeit_date, '%Y-%m-%d' ) as yahrzeit_date_sort,
+          date_format(contact_b.yahrzeit_date, '%M %e, %Y' ) as yahrzeit_date_display,
+          contact_b.relationship_name_formatted,
+          if( contact_b.mourner_observance_preference, date_format(contact_b.yahrzeit_date_morning ,'%M %e, %Y' ), date_format( contact_b.yahrzeit_date_morning, '%M %e, %Y')) as yahrzeit_morning_format_english,
+          date_format( contact_b.yahrzeit_erev_shabbat_before, '%M %e, %Y' ) as yah_erev_shabbat_before,
+          date_format( contact_b.yahrzeit_erev_shabbat_after, '%M %e, %Y' ) as yah_erev_shabbat_after,
+          contact_b.yahrzeit_relationship_id
+        FROM
+          pogstone_temp_yahrzeits contact_b
+          LEFT JOIN civicrm_contact contact_a ON contact_a.id =  contact_b.mourner_contact_id
+          LEFT JOIN civicrm_contact contact_deceased on contact_deceased.id = contact_b.deceased_contact_id
+        WHERE
+          contact_deceased.is_deleted <> 1
+          AND ( contact_a.id is null OR contact_a.is_deleted <> 1 )
+          AND ( contact_a.contact_type IN ( 'Household', 'Individual')  AND contact_a.is_deceased <> 1 )
+          AND (yahrzeit_type = mourner_observance_preference)
           AND yahrzeit_date = %1
           AND contact_b.mourner_contact_id in (" . implode(',', $contactIDs) . ")
         GROUP BY mourner_contact_id, deceased_contact_id, yahrzeit_date
@@ -710,6 +735,7 @@ class HebrewCalendar {
         1 => array($yahrzeit_filter_date, 'Date'),
       );
     }
+    dsm(CRM_Core_DAO::composeQuery($yahrzeit_sql, $yahrzeit_sql_params), 'query');
     $dao = & CRM_Core_DAO::executeQuery($yahrzeit_sql, $yahrzeit_sql_params);
 
     // Figure out how to format date for this locale
@@ -724,12 +750,27 @@ class HebrewCalendar {
       print "<br>Configuration Issue: Unrecognized System date format: " . $tmp_system_date_format;
     }
 
+    // Placeholders for values which may be comma-concatenated.
+    $concat_values = array();
 
-    $tmp_deceasedids_for_con = array();
+    // Tracker to prevent processing mourner/deceased pair more than once. This
+    // is required in part because the yahrzeit table records 4 records for each
+    // yahrzeit, and also does not have a primary key per row.
+    $processed_yahrzeits = array();
+
 // print "<br<br>About to process yahrzeit records. ";
     while ($dao->fetch()) {
 
-      //  print "<br>Have yahrzeit record!";
+      $yahrzeit_key = $dao->contact_id . '_' . $dao->deceased_contact_id;
+      if (in_array($yahrzeit_key, $processed_yahrzeits)) {
+        // We've already done this yahrzeit. Skip it. See notes above for 
+        // $processed_yahrzeits.
+        continue;
+      }
+      // Record that we've processed this yahrzeit.
+      $processed_yahrzeits[] = $yahrzeit_key;
+
+      // Define shortcut variables for various DAO values.
       $cid = $dao->contact_id;
       $mourner_name = $dao->sort_name;
       $deceased_name = $dao->deceased_name;
@@ -744,132 +785,95 @@ class HebrewCalendar {
       $yahrzeit_hebrew_date_format_hebrew = $dao->yahrzeit_hebrew_date_format_hebrew;
       $yahrzeit_date_raw = $dao->yahrzeit_date_sort;
       $yahrzeit_morning_format_english = $dao->yahrzeit_morning_format_english;
+      $yahrzeit_relationship_id = $dao->yahrzeit_relationship_id;
       // $token_strings['english_date_morning']
 
+      // Placeholders for values which may be comma-concatenated, for this contact.
+      if (!array_key_exists($cid, $concat_values)) {
+        $concat_values[$cid] = array(
+          'deceased_name'=> array(),
+          'english_date'=> array(),
+          'hebrew_date'=> array(),
+          'death_english_date'=> array(),
+          'death_hebrew_date'=> array(),
+          'relationship_name'=> array(),
+          'english_date_morning'=> array(),
+          'erev_shabbat_before'=> array(),
+          'shabbat_morning_before'=> array(),
+          'erev_shabbat_after'=> array(),
+          'shabbat_morning_after'=> array(),
+        );
+      }
 
-      $default_seperator = ", ";
+      if (in_array($cid, $contactIDs)) {
+        // Adjust token values for Friday, Saturday before the yahrzeit, and the Friday, Saturday after the yahrzeit.
+        $yah_timestamp = strtotime($yahrzeit_date_raw);
+        $yah_day_of_week = date('w', $yah_timestamp);
+        if ($yah_day_of_week == 5) {
+          // The yahrzeit starts at erev Shabbat (ie Friday night), return the yahrzeit date itself.
+          // A synagogue in this situation will read the name during services that same shabbat.
+          $formatted_friday_before = date($gregorian_date_format, $yah_timestamp);
+          $formatted_friday_after = date($gregorian_date_format, $yah_timestamp);
 
-      if (array_key_exists($cid, $values)) {
-        // print "<br>Fill in token values.";
-        $arr_dec_ids = explode(";", $tmp_deceasedids_for_con[$cid]);
-        if (in_array($dao->deceased_contact_id, $arr_dec_ids) == false) {
+          // Since the yahrzeit itself is a Friday, shabbat morning is the next day.
+          $formatted_saturday_before = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " +1 day"));
+          $formatted_saturday_after = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " +1 day"));
+        } else if ($yah_day_of_week == 6) {
+          // The yahrzeit starts on a Saturday night.
+          // So the Shabbat morning before the yahrzeit is the same English date as the start of the yahrzeit date.
+          $formatted_saturday_before = date($gregorian_date_format, $yah_timestamp);
+          $formatted_saturday_after = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " next Saturday"));
 
+          // Do the usual process for getting erev Shabbat before and after.
+          $formatted_friday_before = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " previous Friday"));
+          $formatted_friday_after = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " next Friday"));
+        } else {
+          $formatted_friday_before = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " previous Friday"));
+          $formatted_friday_after = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " next Friday"));
 
-// FIXME: remote this comma-delimited concatenation.
-          $tmp_deceasedids_for_con[$cid] = $tmp_deceasedids_for_con[$cid] . ";" . $dao->deceased_contact_id;
-          if (strlen($values[$cid][$token_strings['deceased_name']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
+          $formatted_saturday_before = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " previous Saturday"));
+          $formatted_saturday_after = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " next Saturday"));
+        }
 
-          $values[$cid][$token_strings['deceased_name']] = $values[$cid][$token_strings['deceased_name']] . $seper . $deceased_display_name;
+        $concat_values[$cid]['deceased_name'][] = $deceased_display_name;
+        $concat_values[$cid]['english_date'][] = $yahrzeit_date_display;
+        $concat_values[$cid]['hebrew_date'][] = $yahrzeit_hebrew_date_format_english;
+        $concat_values[$cid]['death_english_date'][] = $english_deceased_date;
+        $concat_values[$cid]['death_hebrew_date'][] = $hebrew_deceased_date;
+        $concat_values[$cid]['relationship_name'][] = $relationship_name_formatted;
+        $concat_values[$cid]['english_date_morning'][] = $yahrzeit_morning_format_english;
+        $concat_values[$cid]['erev_shabbat_before'][] = $formatted_friday_before;
+        $concat_values[$cid]['shabbat_morning_before'][] = $formatted_saturday_before;
+        $concat_values[$cid]['erev_shabbat_after'][] = $formatted_friday_after;
+        $concat_values[$cid]['shabbat_morning_after'][] = $formatted_saturday_after;
 
-          if (strlen($values[$cid][$token_strings['english_date']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
-          $values[$cid][$token_strings['english_date']] = $values[$cid][$token_strings['english_date']] . $seper . $yahrzeit_date_display;
-
-          if (strlen($values[$cid][$token_strings['hebrew_date']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
-          $values[$cid][$token_strings['hebrew_date']] = $values[$cid][$token_strings['hebrew_date']] . $seper . $yahrzeit_hebrew_date_format_english;
-
-          if (strlen($values[$cid][$token_strings['death_english_date']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
-          $values[$cid][$token_strings['death_english_date']] = $values[$cid][$token_strings['death_english_date']] . $seper . $english_deceased_date;
-
-          if (strlen($values[$cid][$token_strings['death_hebrew_date']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
-          $values[$cid][$token_strings['death_hebrew_date']] = $values[$cid][$token_strings['death_hebrew_date']] . $seper . $hebrew_deceased_date;
-
-          if (strlen($values[$cid][$token_strings['relationship_name']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
-          $values[$cid][$token_strings['relationship_name']] = $values[$cid][$token_strings['relationship_name']] . $seper . $relationship_name_formatted;
-
-          if (strlen($values[$cid][$token_strings['english_date_morning']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
-          $values[$cid][$token_strings['english_date_morning']] = $values[$cid][$token_strings['english_date_morning']] . $seper . $yahrzeit_morning_format_english;
-
-          // take care of tokens for Friday, Saturday before the yahrzeit, and the Friday, Saturday after the yahrzeit.
-          $yah_timestamp = strtotime($yahrzeit_date_raw);
-          $yah_day_of_week = date('w', $yah_timestamp);
-
-
-          if ($yah_day_of_week == 5) {
-            // The yahrzeit starts at erev Shabbat (ie Friday night), return the yahrzeit date itself.
-            // A synagogue in this situation will read the name during services that same shabbat.
-            $formatted_friday_before = date($gregorian_date_format, $yah_timestamp);
-            $formatted_friday_after = date($gregorian_date_format, $yah_timestamp);
-
-            // Since the yahrzeit itself is a Friday, shabbat morning is the next day.
-            $formatted_saturday_before = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " +1 day"));
-            $formatted_saturday_after = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " +1 day"));
-          } else if ($yah_day_of_week == 6) {
-            // The yahrzeit starts on a Saturday night.
-            // So the Shabbat morning before the yahrzeit is the same English date as the start of the yahrzeit date.
-            $formatted_saturday_before = date($gregorian_date_format, $yah_timestamp);
-            $formatted_saturday_after = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " next Saturday"));
-
-            // Do the usual process for getting erev Shabbat before and after.
-            $formatted_friday_before = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " previous Friday"));
-            $formatted_friday_after = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " next Friday"));
-          } else {
-            $formatted_friday_before = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " previous Friday"));
-            $formatted_friday_after = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " next Friday"));
-
-            $formatted_saturday_before = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " previous Saturday"));
-            $formatted_saturday_after = date($gregorian_date_format, strtotime(date("Y-m-d", $yah_timestamp) . " next Saturday"));
-          }
-
-          if (strlen($values[$cid][$token_strings['erev_shabbat_before']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
-          $values[$cid][$token_strings['erev_shabbat_before']] = $values[$cid][$token_strings['erev_shabbat_before']] . $seper . $formatted_friday_before;
-
-          if (strlen($values[$cid][$token_strings['shabbat_morning_before']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
-          $values[$cid][$token_strings['shabbat_morning_before']] = $values[$cid][$token_strings['shabbat_morning_before']] . $seper . $formatted_saturday_before;
-
-          if (strlen($values[$cid][$token_strings['erev_shabbat_after']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
-          $values[$cid][$token_strings['erev_shabbat_after']] = $values[$cid][$token_strings['erev_shabbat_after']] . $seper . $formatted_friday_after;
-
-          if (strlen($values[$cid][$token_strings['shabbat_morning_after']]) > 0) {
-            $seper = $default_seperator;
-          } else {
-            $seper = "";
-          };
-          $values[$cid][$token_strings['shabbat_morning_after']] = $values[$cid][$token_strings['shabbat_morning_after']] . $seper . $formatted_saturday_after;
+        if (in_array($token_strings_trimmed['all_template'], $tokens['yahrzeit'])) {
+          $values[$cid][$token_strings['all_template']] .= $this->_parseYahrzeitAllTemplate($cid, $yahrzeit_relationship_id);
         }
       }
     }
 
+    // Implode comma-concatenated values as appropriate.
+    foreach ($concat_values as $cid => $contact_values) {
+      foreach ($contact_values as $key => $field_values) {
+        $values[$cid][$token_strings[$key]] = implode(', ', $field_values);
+      }
+    }
+
     $dao->free();
+
+
+    // Set default "no yahrzeits found" message for contacts without a value in the 'yahrzeit.all' token.
+    foreach ($contactIDs as $cid) {
+      if (array_key_exists($cid, $values)) {
+        if ($values[$cid][$token_strings['all']] == "") {
+          $values[$cid][$token_strings['all']] = $values[$cid][$token_strings['short']] = "No yahrzeits found.";
+        }
+        if ($values[$cid][$token_strings['all_template']] == "") {
+          $values[$cid][$token_strings['all_template']] = "No yahrzeits found.";
+        }
+      }
+    }
   }
 
   /**
@@ -1541,7 +1545,8 @@ class HebrewCalendar {
     return $tmp_return;
   }
 
-  function _parseTemplate($contact_id) {
+  function _parseYahrzeitAllTemplate($contact_id, $yahrzeit_id) {
+    dsm(func_get_args(), __FUNCTION__);
     // FIXME: add a loop to repeat this for each of the contact's yahrzeits.
     $template_id = Civi::settings()->get('hebrewcalendar_yahrzeit_templated_message_id');
     if (empty($template_id)) {
@@ -1588,6 +1593,8 @@ class HebrewCalendar {
     foreach ($type as $key => $value) {
       $bodyType = "body_{$value}";
       if ($$bodyType) {
+        $$bodyType .= '{yahrzeit.parseYahrzeitAllTemplate_'. $yahrzeit_id .'}';
+
         CRM_Utils_Token::replaceGreetingTokens($$bodyType, NULL, $contact_id);
         $$bodyType = CRM_Utils_Token::replaceDomainTokens($$bodyType, $domain, true, $tokens, true);
         $$bodyType = CRM_Utils_Token::replaceContactTokens($$bodyType, $contact, false, $tokens, false, true);
@@ -1604,5 +1611,18 @@ class HebrewCalendar {
     }
 
     return $html;
+  }
+
+  public static function getYahrzeitRelationshipIdForTemplate($tokens) {
+    $yahrzeit_id = NULL;
+    // FIXME: hardcoded relationship ID
+    foreach ($tokens['yahrzeit'] as $token) {
+      preg_match("/^parseYahrzeitAllTemplate_([0-9]+)/", $token, $matches);
+      if (count($matches[1])) {
+        $yahrzeit_id = $matches[1];
+        break;
+      }
+    }
+    return $yahrzeit_id;
   }
 }
