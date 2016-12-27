@@ -648,9 +648,7 @@ class HebrewCalendar {
     }
 
     // Populate tokens if possible.
-    dsm($tokens, '$tokens');
     if ($yahrzeit_id = self::getYahrzeitRelationshipIdForTemplate($tokens)) {
-dsm(__LINE__, 'sql defined here');
       $yahrzeit_sql = "
         SELECT
           contact_b.mourner_contact_id as contact_id,
@@ -687,14 +685,12 @@ dsm(__LINE__, 'sql defined here');
       );
     }
     elseif ($flag_is_custom_search && !empty($_SESSION['yahrzeit_sql'])) {
-dsm(__LINE__, 'sql defined here');
       // If we're coming from the Yahrzeits custom search, use the SQL defined in
       // that search to get values for all contacts returned in that search.
       $yahrzeit_sql = $_SESSION['yahrzeit_sql'];
       $yahrzeit_sql_params = CRM_Core_DAO::$_nullArray;
     }
     elseif (!empty($yahrzeit_filter_date)) {
-dsm(__LINE__, 'sql defined here');
       // If we're not coming from the Yahrzeit custom search, use the
       // 'yahrzeit.filter___days_advance_N' filter to determine a date on which
       // to check for yahrzeits, and work that into an SQL query that can be
@@ -735,7 +731,6 @@ dsm(__LINE__, 'sql defined here');
         1 => array($yahrzeit_filter_date, 'Date'),
       );
     }
-    dsm(CRM_Core_DAO::composeQuery($yahrzeit_sql, $yahrzeit_sql_params), 'query');
     $dao = & CRM_Core_DAO::executeQuery($yahrzeit_sql, $yahrzeit_sql_params);
 
     // Figure out how to format date for this locale
@@ -870,7 +865,7 @@ dsm(__LINE__, 'sql defined here');
           $values[$cid][$token_strings['all']] = $values[$cid][$token_strings['short']] = "No yahrzeits found.";
         }
         if ($values[$cid][$token_strings['all_template']] == "") {
-          $values[$cid][$token_strings['all_template']] = "No yahrzeits found.";
+          $values[$cid][$token_strings['all_template']] = $this->_getEmptyYahrzeitAllTemplateValue();
         }
       }
     }
@@ -1546,9 +1541,7 @@ dsm(__LINE__, 'sql defined here');
   }
 
   function _parseYahrzeitAllTemplate($contact_id, $yahrzeit_id) {
-    dsm(func_get_args(), __FUNCTION__);
-    // FIXME: add a loop to repeat this for each of the contact's yahrzeits.
-    $template_id = Civi::settings()->get('hebrewcalendar_yahrzeit_templated_message_id');
+    $template_id = $this->_getYahrzeitAllTemplateId();
     if (empty($template_id)) {
       return '';
     }
@@ -1612,6 +1605,50 @@ dsm(__LINE__, 'sql defined here');
 
     return $html;
   }
+
+  /**
+   * Get the correct string to display when the "yahrzeit.all_template" token
+   * has an empty value. This should be something like 'no yahrzeits found' if the
+   * hebrewcalendar_yahrzeit_templated_message_id setting is set to an existing
+   * and enabled template. Otherwise, it should just be an empty string.
+   *
+   * @return <type>
+   */
+  function _getEmptyYahrzeitAllTemplateValue() {
+    // If hebrewcalendar_yahrzeit_templated_message_id setting is not set, just
+    // return an empty string. Otherwise, return a note that no yahrzeits were
+    // found.
+    $template_id = $this->_getYahrzeitAllTemplateId();
+    if (empty($template_id)) {
+      return '';
+    }
+    else {
+      return "No yahrzeits found.";
+    }
+  }
+
+  /**
+   * Get the ID of an existing enabled message template matching the value of
+   * the hebrewcalendar_yahrzeit_templated_message_id setting. If no such value
+   * or template is found, return 0.
+   *
+   * @return Integer
+   */
+  public function _getYahrzeitAllTemplateId() {
+    $ret = 0;
+    $template_id = Civi::settings()->get('hebrewcalendar_yahrzeit_templated_message_id');
+    if ($template_id) {
+      $result = civicrm_api3('MessageTemplate', 'get', array(
+        'id' => $template_id,
+        'is_active' => 1,
+      ));
+      if (!empty($result['id'])) {
+        $ret = $result['id'];
+      }
+    }
+    return $ret;
+  }
+
 
   public static function getYahrzeitRelationshipIdForTemplate($tokens) {
     $yahrzeit_id = NULL;
